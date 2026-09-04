@@ -20,7 +20,17 @@ class DokumenMasuk(models.Model):
     nik_penerima = models.CharField(max_length=50, verbose_name="NIK penerima")
     foto_barang = models.ImageField(upload_to='foto_barang/', blank=True, null=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Di Resepsionis')
-    dob_pengambil = models.DateField(blank=True, null=True)
+    dob_pengambil = models.DateField(
+        blank=True, 
+        null=True,
+        verbose_name="Tanggal Lahir Pengambil (Verifikasi)",
+        help_text="Sebutkan tanggal lahir saat pengambilan barang untuk verifikasi identitas."
+    )
+    tanggal_diambil = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Waktu Pengambilan Barang"
+    )
 
     class Meta:
         verbose_name_plural = 'Dokumen Masuk'
