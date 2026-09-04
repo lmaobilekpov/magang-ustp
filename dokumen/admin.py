@@ -6,6 +6,7 @@ from .models import DokumenMasuk, DokumenKeluar
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
     list_display = ('tanggal_terima', 'kategori', 'pengirim', 'nama_penerima', 'status')
+    search_fields = ('pengirim', 'nama_penerima', 'nik_penerima')
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
     }
@@ -18,6 +19,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
 @admin.register(DokumenKeluar)
 class DokumenKeluarAdmin(admin.ModelAdmin):
     list_display = ('nomor_resi_internal', 'tanggal_terima', 'nama_pengirim', 'status')
+    search_fields = ('nomor_resi_internal', 'nama_pengirim', 'nik_pengirim')
     readonly_fields = ('nomor_resi_internal',)
 
 # Kustomisasi Teks Django Admin
