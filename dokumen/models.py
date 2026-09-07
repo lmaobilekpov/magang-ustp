@@ -2,6 +2,19 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+class Karyawan(models.Model):
+    nik = models.CharField(max_length=50, unique=True, verbose_name="NIK")
+    nama_lengkap = models.CharField(max_length=255, verbose_name="Nama Lengkap")
+    tanggal_lahir = models.DateField(verbose_name="Tanggal Lahir")
+
+    class Meta:
+        verbose_name = 'Karyawan'
+        verbose_name_plural = 'Data Karyawan'
+        ordering = ['nama_lengkap']
+
+    def __str__(self):
+        return f"{self.nama_lengkap} ({self.nik})"
+
 class DokumenMasuk(models.Model):
     KATEGORI_CHOICES = [
         ('Surat Resmi', 'Surat Resmi'),

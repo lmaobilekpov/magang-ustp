@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
-from .models import DokumenMasuk, DokumenKeluar
+from .models import DokumenMasuk, DokumenKeluar, Karyawan
 
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
@@ -44,6 +44,15 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
             return format_html('<img src="{}" width="50" height="50" style="border-radius: 4px; object-fit: cover;" />', obj.foto_dokumen.url)
         return "-"
     foto_thumbnail.short_description = "Foto"
+
+@admin.register(Karyawan)
+class KaryawanAdmin(admin.ModelAdmin):
+    list_display = ('nik', 'nama_lengkap', 'tanggal_lahir')
+    search_fields = ('nik', 'nama_lengkap')
+    ordering = ('nama_lengkap',)
+    formfield_overrides = {
+        models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
+    }
 
 # Kustomisasi Teks Django Admin
 admin.site.site_header = "Dasbor Resepsionis USTP"
