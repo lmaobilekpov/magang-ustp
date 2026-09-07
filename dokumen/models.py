@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 class DokumenMasuk(models.Model):
     KATEGORI_CHOICES = [
@@ -35,6 +36,14 @@ class DokumenMasuk(models.Model):
     class Meta:
         verbose_name_plural = 'Dokumen Masuk'
 
+    def clean(self):
+        super().clean()
+        if self.status == 'Sudah Diambil':
+            if not self.dob_pengambil:
+                raise ValidationError({'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'})
+            if not self.tanggal_diambil:
+                raise ValidationError({'tanggal_diambil': 'Waktu Pengambilan Barang wajib diisi jika status dokumen Sudah Diambil.'})
+
     def __str__(self):
         return f"{self.kategori} - {self.nama_penerima}"
 
@@ -51,7 +60,7 @@ class DokumenKeluar(models.Model):
     nik_pengirim = models.CharField(max_length=50, verbose_name="NIK pengirim")
     deskripsi = models.TextField()
     foto_dokumen = models.ImageField(upload_to='foto_dokumen/', blank=True, null=True)
-    resi_jne = models.URLField(blank=True, null=True)
+    resi_jne = models.URLField(blank=True, null=True, verbose_name="URL Resi JNE")
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Menunggu Kurir')
 
     class Meta:

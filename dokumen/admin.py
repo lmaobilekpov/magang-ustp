@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.db import models
-from django.forms import DateInput, TextInput, DateTimeInput
+from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
 from .models import DokumenMasuk, DokumenKeluar
 
@@ -12,7 +12,6 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     ordering = ('-id',)
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
-        models.DateTimeField: {'widget': DateTimeInput(attrs={'type': 'datetime-local'})},
     }
 
     def foto_thumbnail(self, obj):
@@ -24,6 +23,12 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name in ['pengirim', 'nama_penerima', 'nik_penerima']:
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off'})
+        # Override DateTimeField agar bisa parsing format ISO dari browser (datetime-local)
+        if isinstance(db_field, models.DateTimeField):
+            kwargs['form_class'] = DateTimeFormField
+            kwargs['widget'] = DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')
+            kwargs['input_formats'] = ['%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S']
+            return db_field.formfield(**kwargs)
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 @admin.register(DokumenKeluar)
