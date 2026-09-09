@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe 
 from .models import DokumenMasuk, DokumenKeluar, Karyawan
 
 @admin.register(DokumenMasuk)
@@ -21,16 +22,40 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     foto_thumbnail.short_description = "Foto"
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
-        if db_field.name in ['pengirim', 'nama_penerima', 'nik_penerima']:
+        # 1. Trik Combobox untuk Nama Penerima
+        if db_field.name == 'nama_penerima':
+            karyawan_list = Karyawan.objects.all()
+            options = "".join([f'<option value="{k.nama_lengkap}">' for k in karyawan_list])
+            datalist = f'<datalist id="list_nama">{options}</datalist>'
+            
+            kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'list': 'list_nama'})
+            formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+            formfield.help_text = mark_safe(datalist + "Pilih dari daftar atau ketik manual.")
+            return formfield
+
+        # 2. Trik Combobox untuk NIK Penerima
+        elif db_field.name == 'nik_penerima':
+            karyawan_list = Karyawan.objects.all()
+            options = "".join([f'<option value="{k.nik}">' for k in karyawan_list])
+            datalist = f'<datalist id="list_nik">{options}</datalist>'
+            
+            kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'list': 'list_nik'})
+            formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+            formfield.help_text = mark_safe(datalist + "Pilih dari daftar atau ketik manual.")
+            return formfield
+
+        # 3. Tetap matikan autocomplete untuk pengirim biasa (kodingan asli lu)
+        elif db_field.name == 'pengirim':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off'})
-        # Override DateTimeField agar bisa parsing format ISO dari browser (datetime-local)
+
+        # 4. Override DateTimeField agar bisa parsing format ISO (kodingan asli lu)
         if isinstance(db_field, models.DateTimeField):
             kwargs['form_class'] = DateTimeFormField
             kwargs['widget'] = DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')
             kwargs['input_formats'] = ['%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S']
             return db_field.formfield(**kwargs)
+        
         return super().formfield_for_dbfield(db_field, request, **kwargs)
-
 @admin.register(DokumenKeluar)
 class DokumenKeluarAdmin(admin.ModelAdmin):
     list_display = ('nomor_resi_internal', 'tanggal_terima', 'nama_pengirim', 'status', 'foto_thumbnail')

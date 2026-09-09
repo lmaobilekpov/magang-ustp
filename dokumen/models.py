@@ -49,16 +49,22 @@ class DokumenMasuk(models.Model):
     class Meta:
         verbose_name_plural = 'Dokumen Masuk'
 
-    def clean(self):
-        super().clean()
-        if self.status == 'Sudah Diambil':
-            if not self.dob_pengambil:
-                raise ValidationError({'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'})
-            if not self.tanggal_diambil:
-                raise ValidationError({'tanggal_diambil': 'Waktu Pengambilan Barang wajib diisi jika status dokumen Sudah Diambil.'})
+def clean(self):
+    super().clean()
+    if self.status == 'Sudah Diambil':
+        # 1. Cek apakah kolomnya kosong
+        if not self.dob_pengambil:
+            raise ValidationError({'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'})
+        if not self.tanggal_diambil:
+            raise ValidationError({'tanggal_diambil': 'Waktu Pengambilan Barang wajib diisi jika status dokumen Sudah Diambil.'})
+        
+        # 2. INI TAMBAHANNYA: Cek apakah tanggalnya COCOK dengan database Karyawan
+        # (Pastikan 'tanggal_lahir' adalah nama kolom di model Karyawan lu)
+        if self.dob_pengambil != self.nik_penerima.tanggal_lahir:
+            raise ValidationError({'dob_pengambil': 'Verifikasi Gagal: Tanggal lahir tidak cocok dengan data asli Karyawan!'})
 
-    def __str__(self):
-        return f"{self.kategori} - {self.nama_penerima}"
+def __str__(self):
+    return f"{self.kategori} - {self.nama_penerima}"
 
 class DokumenKeluar(models.Model):
     STATUS_CHOICES = [
