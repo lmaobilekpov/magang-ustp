@@ -9,6 +9,16 @@ from .models import DokumenMasuk, DokumenKeluar, Karyawan
 class DokumenMasukAdmin(admin.ModelAdmin):
     list_display = ('tanggal_terima', 'kategori', 'pengirim', 'nama_penerima', 'status', 'foto_thumbnail')
     search_fields = ('pengirim', 'nama_penerima', 'nik_penerima')
+    fields = (
+        'kategori',
+        'pengirim',
+        'nik_penerima',
+        'nama_penerima',
+        'foto_barang',
+        'status',
+        'dob_pengambil',
+        'tanggal_diambil',
+    )
     list_filter = ('status', 'kategori', 'tanggal_terima')
     ordering = ('-id',)
     formfield_overrides = {
