@@ -136,27 +136,16 @@ class DokumenKeluar(models.Model):
         verbose_name_plural = 'Dokumen Keluar'
 
     def save(self, *args, **kwargs):
-        from django.utils import timezone
-
-        if self.pk:
-            data_lama = DokumenMasuk.objects.get(pk=self.pk)
-
-            if data_lama.status == 'Sudah Diambil':
-                self.tanggal_diambil = data_lama.tanggal_diambil
-
-            elif self.status == 'Sudah Diambil':
-                self.tanggal_diambil = timezone.now()
-
-            else:
-                self.tanggal_diambil = None
-
-        else:
-            if self.status == 'Sudah Diambil':
-                self.tanggal_diambil = timezone.now()
+        if not self.nomor_resi_internal:
+            today = timezone.now().date()
+            # Mencari dokumen yang dibuat hari ini
+            count = DokumenKeluar.objects.filter(tanggal_terima=today).count()
+            new_number = count + 1
+            date_str = today.strftime("%Y%m%d")
+            self.nomor_resi_internal = f"OUT-{date_str}-{new_number:03d}"
 
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return f"{self.kategori} - {self.nama_penerima}"
+    
     def __str__(self):
         return f"{self.nomor_resi_internal} - {self.nama_pengirim}"
