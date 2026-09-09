@@ -119,8 +119,7 @@ class DokumenMasuk(models.Model):
 class DokumenKeluar(models.Model):
     STATUS_CHOICES = [
         ('Menunggu Kurir', 'Menunggu Kurir'),
-        ('Sedang Dikirim JNE', 'Sedang Dikirim JNE'),
-        ('Selesai', 'Selesai'),
+        ('Sudah Diserahkan ke JNE', 'Sudah Diserahkan ke JNE'),
     ]
 
     nomor_resi_internal = models.CharField(max_length=20, unique=True, blank=True)
