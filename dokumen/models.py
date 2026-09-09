@@ -49,26 +49,39 @@ class DokumenMasuk(models.Model):
     class Meta:
         verbose_name_plural = 'Dokumen Masuk'
 
-def clean(self):
+    def clean(self):
         super().clean()
         if self.status == 'Sudah Diambil':
             if not self.dob_pengambil:
-                raise ValidationError({'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'})
+                raise ValidationError({
+                    'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
+                })
+
             if not self.tanggal_diambil:
-                raise ValidationError({'tanggal_diambil': 'Waktu Pengambilan Barang wajib diisi jika status dokumen Sudah Diambil.'})
-            
-            # 1. Cari data karyawan di database (Master Data) berdasarkan NIK yang diketik
-            karyawan_asli = Karyawan.objects.filter(nik=self.nik_penerima).first()
-            
-            # 2. Kalau NIK-nya ketemu di sistem (Karyawan Asli), lakukan validasi ketat!
+                raise ValidationError({
+                    'tanggal_diambil': 'Waktu Pengambilan Barang wajib diisi jika status dokumen Sudah Diambil.'
+                })
+
+            # Cari data karyawan berdasarkan NIK
+            karyawan_asli = Karyawan.objects.filter(
+                nik=self.nik_penerima
+            ).first()
+
             if karyawan_asli:
+                # Cek apakah nama penerima cocok dengan data HRD
+                if self.nama_penerima.strip().casefold() != karyawan_asli.nama_lengkap.strip().casefold():
+                    raise ValidationError({
+                        'nama_penerima': 'Verifikasi Gagal: Nama penerima tidak cocok dengan data HRD!'
+                    })
+
+                # Cek apakah tanggal lahir cocok dengan data HRD
                 if self.dob_pengambil != karyawan_asli.tanggal_lahir:
-                    raise ValidationError({'dob_pengambil': 'Verifikasi Gagal: Tanggal lahir tidak cocok dengan data HRD!'})
-            
-            # Catatan: Kalau karyawan_asli tidak ditemukan (berarti Tamu/Orang Luar), 
-            # sistem akan membiarkan data di-save karena tidak ada data acuan untuk dicocokkan.
-def __str__(self):
-    return f"{self.kategori} - {self.nama_penerima}"
+                    raise ValidationError({
+                        'dob_pengambil': 'Verifikasi Gagal: Tanggal lahir tidak cocok dengan data HRD!'
+                    })
+    def __str__(self):
+        return f"{self.kategori} - {self.nama_penerima}"
+
 
 class DokumenKeluar(models.Model):
     STATUS_CHOICES = [
