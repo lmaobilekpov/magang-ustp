@@ -131,7 +131,24 @@ class DokumenKeluar(models.Model):
     foto_dokumen = models.ImageField(upload_to='foto_dokumen/', blank=True, null=True)
     resi_jne = models.URLField(blank=True, null=True, verbose_name="URL Resi JNE")
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Menunggu Kurir')
+    
+    def clean(self):
+        super().clean()
 
+        if self.nik_pengirim and self.nama_pengirim:
+            karyawan = Karyawan.objects.filter(
+                nik=self.nik_pengirim
+            ).first()
+
+            if not karyawan:
+                raise ValidationError({
+                    'nik_pengirim': 'NIK pengirim tidak terdaftar di Data Karyawan!'
+                })
+
+            if self.nama_pengirim.strip().casefold() != karyawan.nama_lengkap.strip().casefold():
+                raise ValidationError({
+                    'nama_pengirim': 'Nama pengirim tidak sesuai dengan NIK!'
+                })
     class Meta:
         verbose_name_plural = 'Dokumen Keluar'
 

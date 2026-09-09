@@ -181,7 +181,15 @@
             {% for doc in dokumen_keluar %}
             <tr>
                 <!-- Sesuaikan juga doc.resi_jne dan doc.status dengan nama field di models.py lu -->
-                <td>{{ doc.resi_jne|default:"-" }}</td>
+                <td>
+                    {% if doc.resi_jne %}
+                    <a href="{{ doc.resi_jne }}" target="_blank">
+                        Lacak JNE
+                    </a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
                 <td>{{ doc.status }}</td>
             </tr>
             {% endfor %}

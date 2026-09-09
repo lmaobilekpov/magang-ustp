@@ -75,6 +75,74 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
     ordering = ('-id',)
     readonly_fields = ('nomor_resi_internal',)
 
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'nama_pengirim':
+            karyawan_list = Karyawan.objects.all()
+
+            options = "".join([
+                f'<option value="{k.nama_lengkap}" data-nik="{k.nik}">'
+                for k in karyawan_list
+            ])
+
+            datalist = f'<datalist id="list_nama_pengirim">{options}</datalist>'
+
+            kwargs['widget'] = TextInput(
+                attrs={
+                    'autocomplete': 'off',
+                    'list': 'list_nama_pengirim',
+                    'id': 'id_nama_pengirim'
+                }
+            )
+
+            formfield = super().formfield_for_dbfield(
+                db_field, request, **kwargs
+            )
+
+            formfield.help_text = mark_safe(
+                datalist + """
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const namaInput = document.getElementById('id_nama_pengirim');
+                    const nikInput = document.getElementById('id_nik_pengirim');
+                    const datalist = document.getElementById('list_nama_pengirim');
+
+                    function updateNIK() {
+                        const pilihan = Array.from(datalist.options).find(
+                            option => option.value === namaInput.value
+                        );
+
+                        if (pilihan) {
+                            nikInput.value = pilihan.dataset.nik;
+                        } else {
+                            nikInput.value = '';
+                        }
+                    }
+
+                    namaInput.addEventListener('input', updateNIK);
+                    namaInput.addEventListener('change', updateNIK);
+                });
+                </script>
+                """
+            )
+
+            return formfield
+
+        elif db_field.name == 'nik_pengirim':
+            kwargs['widget'] = TextInput(
+                attrs={
+                    'readonly': 'readonly',
+                    'id': 'id_nik_pengirim'
+                }
+            )
+
+            return super().formfield_for_dbfield(
+                db_field, request, **kwargs
+            )
+
+        return super().formfield_for_dbfield(
+            db_field, request, **kwargs
+        )
+
     def foto_thumbnail(self, obj):
         if obj.foto_dokumen:
             return format_html('<img src="{}" width="50" height="50" style="border-radius: 4px; object-fit: cover;" />', obj.foto_dokumen.url)
