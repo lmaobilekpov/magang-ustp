@@ -63,11 +63,28 @@ class DokumenMasuk(models.Model):
                 })
 
             # Cari data karyawan berdasarkan NIK
+                        # Cari data karyawan berdasarkan NIK
             karyawan_asli = Karyawan.objects.filter(
                 nik=self.nik_penerima
             ).first()
 
-            if karyawan_asli:
+            # NIK wajib terdaftar di data HRD
+            if not karyawan_asli:
+                raise ValidationError({
+                    'nik_penerima': 'NIK tidak terdaftar di data HRD!'
+                })
+
+            # Cek apakah nama penerima cocok dengan data HRD
+            if self.nama_penerima.strip().casefold() != karyawan_asli.nama_lengkap.strip().casefold():
+                raise ValidationError({
+                    'nama_penerima': 'Nama tidak sesuai dengan NIK!'                
+                    })
+
+            # Cek apakah tanggal lahir cocok dengan data HRD
+            if self.dob_pengambil != karyawan_asli.tanggal_lahir:
+                raise ValidationError({
+                    'dob_pengambil': 'Tanggal lahir salah!'
+                })
                 # Cek apakah nama penerima cocok dengan data HRD
                 if self.nama_penerima.strip().casefold() != karyawan_asli.nama_lengkap.strip().casefold():
                     raise ValidationError({
