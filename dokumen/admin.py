@@ -19,6 +19,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
         'dob_pengambil',
         'tanggal_diambil',
     )
+    readonly_fields = ('tanggal_diambil',)
     list_filter = ('status', 'kategori', 'tanggal_terima')
     ordering = ('-id',)
     formfield_overrides = {

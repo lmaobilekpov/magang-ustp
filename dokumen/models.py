@@ -115,9 +115,6 @@ class DokumenMasuk(models.Model):
 
     def __str__(self):
         return f"{self.kategori} - {self.nama_penerima}"
-    def __str__(self):
-        return f"{self.kategori} - {self.nama_penerima}"
-
 
 class DokumenKeluar(models.Model):
     STATUS_CHOICES = [
