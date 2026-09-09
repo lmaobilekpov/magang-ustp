@@ -57,11 +57,7 @@ class DokumenMasuk(models.Model):
                     'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
                 })
 
-            if not self.tanggal_diambil:
-                raise ValidationError({
-                    'tanggal_diambil': 'Waktu Pengambilan Barang wajib diisi jika status dokumen Sudah Diambil.'
-                })
-
+            
             # Cari data karyawan berdasarkan NIK
                         # Cari data karyawan berdasarkan NIK
             karyawan_asli = Karyawan.objects.filter(
@@ -96,6 +92,29 @@ class DokumenMasuk(models.Model):
                     raise ValidationError({
                         'dob_pengambil': 'Verifikasi Gagal: Tanggal lahir tidak cocok dengan data HRD!'
                     })
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+
+        if self.pk:
+            data_lama = DokumenMasuk.objects.get(pk=self.pk)
+
+            if data_lama.status == 'Sudah Diambil':
+                self.tanggal_diambil = data_lama.tanggal_diambil
+
+            elif self.status == 'Sudah Diambil':
+                self.tanggal_diambil = timezone.now()
+
+            else:
+                self.tanggal_diambil = None
+
+        else:
+            if self.status == 'Sudah Diambil':
+                self.tanggal_diambil = timezone.now()
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.kategori} - {self.nama_penerima}"
     def __str__(self):
         return f"{self.kategori} - {self.nama_penerima}"
 
@@ -120,14 +139,27 @@ class DokumenKeluar(models.Model):
         verbose_name_plural = 'Dokumen Keluar'
 
     def save(self, *args, **kwargs):
-        if not self.nomor_resi_internal:
-            today = timezone.now().date()
-            # Mencari dokumen yang dibuat hari ini
-            count = DokumenKeluar.objects.filter(tanggal_terima=today).count()
-            new_number = count + 1
-            date_str = today.strftime("%Y%m%d")
-            self.nomor_resi_internal = f"OUT-{date_str}-{new_number:03d}"
+        from django.utils import timezone
+
+        if self.pk:
+            data_lama = DokumenMasuk.objects.get(pk=self.pk)
+
+            if data_lama.status == 'Sudah Diambil':
+                self.tanggal_diambil = data_lama.tanggal_diambil
+
+            elif self.status == 'Sudah Diambil':
+                self.tanggal_diambil = timezone.now()
+
+            else:
+                self.tanggal_diambil = None
+
+        else:
+            if self.status == 'Sudah Diambil':
+                self.tanggal_diambil = timezone.now()
+
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"{self.kategori} - {self.nama_penerima}"
     def __str__(self):
         return f"{self.nomor_resi_internal} - {self.nama_pengirim}"
