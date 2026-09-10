@@ -15,6 +15,17 @@ class Karyawan(models.Model):
     def __str__(self):
         return f"{self.nama_lengkap} ({self.nik})"
 
+class DataPT(models.Model):
+    nama_pt = models.CharField(max_length=255, unique=True, verbose_name="Nama PT / Instansi")
+
+    class Meta:
+        verbose_name = 'PT / Instansi'
+        verbose_name_plural = 'Data PT / Instansi'
+        ordering = ['nama_pt']
+
+    def __str__(self):
+        return self.nama_pt
+
 class DokumenMasuk(models.Model):
     KATEGORI_CHOICES = [
         ('Surat Resmi', 'Surat Resmi'),
