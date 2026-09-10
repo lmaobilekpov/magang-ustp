@@ -66,6 +66,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                             if (ptWrapper) ptWrapper.style.display = 'none';
                             if (pengirimWrapper) pengirimWrapper.style.display = '';
                             pengirimInput.readOnly = false;
+                            if (ptInput) ptInput.value = '';
                         }
                     }
 
@@ -120,6 +121,16 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             return db_field.formfield(**kwargs)
 
         return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        # Pastikan nilai pengirim tetap benar walaupun JavaScript di browser tidak berjalan.
+        if obj.jenis_pengirim == 'PT':
+            if obj.pt_pengirim:
+                obj.pengirim = obj.pt_pengirim.nama_pt
+        else:
+            obj.pt_pengirim = None
+
+        super().save_model(request, obj, form, change)
 
 @admin.register(DokumenKeluar)
 class DokumenKeluarAdmin(admin.ModelAdmin):
