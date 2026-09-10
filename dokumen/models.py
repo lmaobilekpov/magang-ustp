@@ -114,11 +114,14 @@ class DokumenMasuk(models.Model):
         if self.pk:
             data_lama = DokumenMasuk.objects.get(pk=self.pk)
 
-            if data_lama.status == 'Sudah Diambil':
+            if data_lama.status == 'Sudah Diambil' and self.status == 'Sudah Diambil':
+                # Kalau tetap sudah diambil, pertahankan waktu pengambilan lama
                 self.tanggal_diambil = data_lama.tanggal_diambil
             elif self.status == 'Sudah Diambil':
+                # Kalau baru berubah menjadi sudah diambil, catat waktu sekarang
                 self.tanggal_diambil = timezone.now()
             else:
+                # Kalau status dikembalikan ke resepsionis, hapus waktu pengambilan
                 self.tanggal_diambil = None
         else:
             if self.status == 'Sudah Diambil':
