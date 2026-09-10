@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField, Select
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe 
+from django.utils.safestring import mark_safe
 from .models import DokumenMasuk, DokumenKeluar, Karyawan, DataPT
 
 @admin.register(DokumenMasuk)
@@ -35,6 +35,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     foto_thumbnail.short_description = "Foto"
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
+        # Jenis pengirim: PT / Instansi atau Non-PT / Perseorangan
         if db_field.name == 'jenis_pengirim':
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
             formfield.help_text = mark_safe("""
@@ -75,69 +76,35 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             """)
             return formfield
 
+        # Nama penerima: dropdown dari Data Karyawan
         if db_field.name == 'nama_penerima':
             karyawan_list = Karyawan.objects.all()
-            choices = [('', '---------')] + [(k.nama_lengkap, k.nama_lengkap) for k in karyawan_list]
-
-            current_value = request.POST.get('nama_penerima') if request.method == 'POST' else request.GET.get('nama_penerima')
-            if current_value and current_value not in [value for value, label in choices]:
-                choices.append((current_value, current_value))
+            choices = [('', '---------')] + [
+                (k.nama_lengkap, f'{k.nama_lengkap} ({k.nik})') for k in karyawan_list
+            ]
 
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'id': 'id_nama_penerima', 'style': 'width: 300px;'})
+            formfield.widget = Select(attrs={'style': 'width: 300px;'})
             formfield.choices = choices
-            formfield.help_text = mark_safe("""
-                Pilih nama karyawan dari daftar.
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const namaInput = document.getElementById('id_nama_penerima');
-                    const nikInput = document.getElementById('id_nik_penerima');
-                    const dataKaryawan = {%s};
-
-                    function updateNIK() {
-                        if (namaInput && nikInput) nikInput.value = dataKaryawan[namaInput.value] || '';
-                    }
-
-                    if (namaInput) namaInput.addEventListener('change', updateNIK);
-                    updateNIK();
-                });
-                </script>
-            """ % '{' + ','.join([f'{k.nama_lengkap!r}: {k.nik!r}' for k in karyawan_list]) + '}')
             return formfield
 
-        elif db_field.name == 'nik_penerima':
+        # NIK penerima: dropdown dari Data Karyawan
+        if db_field.name == 'nik_penerima':
             karyawan_list = Karyawan.objects.all()
-            choices = [('', '---------')] + [(k.nik, k.nik) for k in karyawan_list]
+            choices = [('', '---------')] + [
+                (k.nik, k.nik) for k in karyawan_list
+            ]
 
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'id': 'id_nik_penerima', 'style': 'width: 300px;'})
+            formfield.widget = Select(attrs={'style': 'width: 300px;'})
             formfield.choices = choices
-            formfield.help_text = mark_safe("""
-                Pilih NIK dari daftar.
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const namaInput = document.getElementById('id_nama_penerima');
-                    const nikInput = document.getElementById('id_nik_penerima');
-                    const dataKaryawan = {%s};
-                    const dataNik = {};
-
-                    Object.keys(dataKaryawan).forEach(function(nama) {
-                        dataNik[dataKaryawan[nama]] = nama;
-                    });
-
-                    if (nikInput) {
-                        nikInput.addEventListener('change', function() {
-                            if (namaInput) namaInput.value = dataNik[nikInput.value] || '';
-                        });
-                    }
-                });
-                </script>
-            """ % '{' + ','.join([f'{k.nama_lengkap!r}: {k.nik!r}' for k in karyawan_list]) + '}')
             return formfield
 
-        elif db_field.name == 'pengirim':
+        # Pengirim tetap menjadi input manual untuk Non-PT dan disembunyikan lewat JS saat PT
+        if db_field.name == 'pengirim':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'id': 'id_pengirim'})
 
+        # Override DateTimeField agar bisa parsing format datetime-local
         if isinstance(db_field, models.DateTimeField):
             kwargs['form_class'] = DateTimeFormField
             kwargs['widget'] = DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')
@@ -155,60 +122,28 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
     readonly_fields = ('nomor_resi_internal',)
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
+        # Nama pengirim: dropdown dari Data Karyawan
         if db_field.name == 'nama_pengirim':
             karyawan_list = Karyawan.objects.all()
-            choices = [('', '---------')] + [(k.nama_lengkap, k.nama_lengkap) for k in karyawan_list]
+            choices = [('', '---------')] + [
+                (k.nama_lengkap, f'{k.nama_lengkap} ({k.nik})') for k in karyawan_list
+            ]
 
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'id': 'id_nama_pengirim', 'style': 'width: 300px;'})
+            formfield.widget = Select(attrs={'style': 'width: 300px;'})
             formfield.choices = choices
-            formfield.help_text = mark_safe("""
-                Pilih nama karyawan dari daftar.
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const namaInput = document.getElementById('id_nama_pengirim');
-                    const nikInput = document.getElementById('id_nik_pengirim');
-                    const dataKaryawan = {%s};
-
-                    function updateNIK() {
-                        if (namaInput && nikInput) nikInput.value = dataKaryawan[namaInput.value] || '';
-                    }
-
-                    if (namaInput) namaInput.addEventListener('change', updateNIK);
-                    updateNIK();
-                });
-                </script>
-            """ % '{' + ','.join([f'{k.nama_lengkap!r}: {k.nik!r}' for k in karyawan_list]) + '}')
             return formfield
 
-        elif db_field.name == 'nik_pengirim':
+        # NIK pengirim: dropdown dari Data Karyawan
+        if db_field.name == 'nik_pengirim':
             karyawan_list = Karyawan.objects.all()
-            choices = [('', '---------')] + [(k.nik, k.nik) for k in karyawan_list]
+            choices = [('', '---------')] + [
+                (k.nik, k.nik) for k in karyawan_list
+            ]
 
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'id': 'id_nik_pengirim', 'style': 'width: 300px;'})
+            formfield.widget = Select(attrs={'style': 'width: 300px;'})
             formfield.choices = choices
-            formfield.help_text = mark_safe("""
-                Pilih NIK dari daftar.
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const namaInput = document.getElementById('id_nama_pengirim');
-                    const nikInput = document.getElementById('id_nik_pengirim');
-                    const dataKaryawan = {%s};
-                    const dataNik = {};
-
-                    Object.keys(dataKaryawan).forEach(function(nama) {
-                        dataNik[dataKaryawan[nama]] = nama;
-                    });
-
-                    if (nikInput) {
-                        nikInput.addEventListener('change', function() {
-                            if (namaInput) namaInput.value = dataNik[nikInput.value] || '';
-                        });
-                    }
-                });
-                </script>
-            """ % '{' + ','.join([f'{k.nama_lengkap!r}: {k.nik!r}' for k in karyawan_list]) + '}')
             return formfield
 
         return super().formfield_for_dbfield(db_field, request, **kwargs)
