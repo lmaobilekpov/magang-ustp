@@ -1,9 +1,11 @@
 from django.contrib import admin
+from django import forms
 from django.db import models
-from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField, Select
+from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import DokumenMasuk, DokumenKeluar, Karyawan, DataPT
+import json
 
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
@@ -35,7 +37,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     foto_thumbnail.short_description = "Foto"
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
-        # Jenis pengirim: PT / Instansi atau Non-PT / Perseorangan
+        # Pilih jenis pengirim + tampilkan field yang sesuai
         if db_field.name == 'jenis_pengirim':
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
             formfield.help_text = mark_safe("""
@@ -76,31 +78,37 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             """)
             return formfield
 
-        # Nama penerima: dropdown dari Data Karyawan
+        # Nama penerima: dropdown biasa dari Data Karyawan
         if db_field.name == 'nama_penerima':
-            karyawan_list = Karyawan.objects.all()
+            karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
-                (k.nama_lengkap, f'{k.nama_lengkap} ({k.nik})') for k in karyawan_list
+                (k.nama_lengkap, k.nama_lengkap) for k in karyawan_list
             ]
+            mapping = {k.nama_lengkap: k.nik for k in karyawan_list}
 
-            formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'style': 'width: 300px;'})
-            formfield.choices = choices
-            return formfield
+            widget = forms.Select(attrs={
+                'style': 'width: 300px;',
+                'data-map': json.dumps(mapping, ensure_ascii=False),
+                'onchange': "document.getElementById('id_nik_penerima').value = JSON.parse(this.dataset.map)[this.value] || '';"
+            })
+            return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
-        # NIK penerima: dropdown dari Data Karyawan
+        # NIK penerima: dropdown biasa dari Data Karyawan
         if db_field.name == 'nik_penerima':
-            karyawan_list = Karyawan.objects.all()
+            karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
                 (k.nik, k.nik) for k in karyawan_list
             ]
+            mapping = {k.nik: k.nama_lengkap for k in karyawan_list}
 
-            formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'style': 'width: 300px;'})
-            formfield.choices = choices
-            return formfield
+            widget = forms.Select(attrs={
+                'style': 'width: 300px;',
+                'data-map': json.dumps(mapping, ensure_ascii=False),
+                'onchange': "document.getElementById('id_nama_penerima').value = JSON.parse(this.dataset.map)[this.value] || '';"
+            })
+            return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
-        # Pengirim tetap menjadi input manual untuk Non-PT dan disembunyikan lewat JS saat PT
+        # Pengirim manual saat Non-PT
         if db_field.name == 'pengirim':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'id': 'id_pengirim'})
 
@@ -124,27 +132,33 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         # Nama pengirim: dropdown dari Data Karyawan
         if db_field.name == 'nama_pengirim':
-            karyawan_list = Karyawan.objects.all()
+            karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
-                (k.nama_lengkap, f'{k.nama_lengkap} ({k.nik})') for k in karyawan_list
+                (k.nama_lengkap, k.nama_lengkap) for k in karyawan_list
             ]
+            mapping = {k.nama_lengkap: k.nik for k in karyawan_list}
 
-            formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'style': 'width: 300px;'})
-            formfield.choices = choices
-            return formfield
+            widget = forms.Select(attrs={
+                'style': 'width: 300px;',
+                'data-map': json.dumps(mapping, ensure_ascii=False),
+                'onchange': "document.getElementById('id_nik_pengirim').value = JSON.parse(this.dataset.map)[this.value] || '';"
+            })
+            return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
         # NIK pengirim: dropdown dari Data Karyawan
         if db_field.name == 'nik_pengirim':
-            karyawan_list = Karyawan.objects.all()
+            karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
                 (k.nik, k.nik) for k in karyawan_list
             ]
+            mapping = {k.nik: k.nama_lengkap for k in karyawan_list}
 
-            formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
-            formfield.widget = Select(attrs={'style': 'width: 300px;'})
-            formfield.choices = choices
-            return formfield
+            widget = forms.Select(attrs={
+                'style': 'width: 300px;',
+                'data-map': json.dumps(mapping, ensure_ascii=False),
+                'onchange': "document.getElementById('id_nama_pengirim').value = JSON.parse(this.dataset.map)[this.value] || '';"
+            })
+            return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
