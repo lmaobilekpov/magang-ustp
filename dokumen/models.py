@@ -57,9 +57,7 @@ class DokumenMasuk(models.Model):
                     'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
                 })
 
-            
             # Cari data karyawan berdasarkan NIK
-                        # Cari data karyawan berdasarkan NIK
             karyawan_asli = Karyawan.objects.filter(
                 nik=self.nik_penerima
             ).first()
