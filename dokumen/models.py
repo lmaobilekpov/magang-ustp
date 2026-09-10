@@ -173,9 +173,18 @@ class DokumenKeluar(models.Model):
     def save(self, *args, **kwargs):
         if not self.nomor_resi_internal:
             today = timezone.now().date()
-            count = DokumenKeluar.objects.filter(tanggal_terima=today).count()
-            new_number = count + 1
             date_str = today.strftime("%Y%m%d")
+            nomor_terakhir = DokumenKeluar.objects.filter(
+                tanggal_terima=today,
+                nomor_resi_internal__startswith=f"OUT-{date_str}-"
+            ).order_by('-nomor_resi_internal').first()
+
+            if nomor_terakhir:
+                nomor_terakhir = int(nomor_terakhir.nomor_resi_internal.split('-')[-1])
+                new_number = nomor_terakhir + 1
+            else:
+                new_number = 1
+
             self.nomor_resi_internal = f"OUT-{date_str}-{new_number:03d}"
 
         super().save(*args, **kwargs)
