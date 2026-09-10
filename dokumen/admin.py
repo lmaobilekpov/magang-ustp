@@ -11,6 +11,8 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     search_fields = ('pengirim', 'nama_penerima', 'nik_penerima')
     fields = (
         'kategori',
+        'jenis_pengirim',
+        'pt_pengirim',
         'pengirim',
         'nama_penerima',
         'nik_penerima',
@@ -33,7 +35,51 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     foto_thumbnail.short_description = "Foto"
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
-        # 1. Combobox Nama Penerima + NIK otomatis
+        # 1. Pilih jenis pengirim + atur field PT dan nama pengirim
+        if db_field.name == 'jenis_pengirim':
+            formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+            formfield.help_text = mark_safe("""
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const jenisInput = document.getElementById('id_jenis_pengirim');
+                    const ptInput = document.getElementById('id_pt_pengirim');
+                    const pengirimInput = document.getElementById('id_pengirim');
+                    const ptWrapper = ptInput ? ptInput.closest('.form-row') : null;
+                    const pengirimWrapper = pengirimInput ? pengirimInput.closest('.form-row') : null;
+
+                    function updatePengirim() {
+                        if (!jenisInput || !pengirimInput) return;
+
+                        if (jenisInput.value === 'PT') {
+                            if (ptWrapper) ptWrapper.style.display = '';
+                            pengirimInput.readOnly = true;
+
+                            if (ptInput && ptInput.value) {
+                                pengirimInput.value = ptInput.options[ptInput.selectedIndex].text;
+                            } else {
+                                pengirimInput.value = '';
+                            }
+                        } else {
+                            if (ptWrapper) ptWrapper.style.display = 'none';
+                            pengirimInput.readOnly = false;
+                        }
+                    }
+
+                    if (jenisInput) {
+                        jenisInput.addEventListener('change', updatePengirim);
+                    }
+                    if (ptInput) {
+                        ptInput.addEventListener('change', updatePengirim);
+                    }
+
+                    updatePengirim();
+                });
+                </script>
+                Pilih <b>PT / Instansi</b> untuk memilih dari Data PT, atau <b>Non-PT / Perseorangan</b> untuk mengetik nama pengirim manual.
+            """)
+            return formfield
+
+        # 2. Combobox Nama Penerima + NIK otomatis
         if db_field.name == 'nama_penerima':
             karyawan_list = Karyawan.objects.all()
             options = "".join([
@@ -77,7 +123,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             )
             return formfield
 
-        # 2. NIK Penerima tetap bisa diketik manual untuk edge case
+        # 3. NIK Penerima tetap bisa diketik manual untuk edge case
         elif db_field.name == 'nik_penerima':
             karyawan_list = Karyawan.objects.all()
             options = "".join([
@@ -100,11 +146,11 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             )
             return formfield
 
-        # 3. Tetap matikan autocomplete untuk pengirim biasa
+        # 4. Tetap matikan autocomplete untuk pengirim biasa
         elif db_field.name == 'pengirim':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off'})
 
-        # 4. Override DateTimeField agar bisa parsing format ISO
+        # 5. Override DateTimeField agar bisa parsing format ISO
         if isinstance(db_field, models.DateTimeField):
             kwargs['form_class'] = DateTimeFormField
             kwargs['widget'] = DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')
