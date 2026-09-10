@@ -132,8 +132,8 @@
         {% endif %}
 
         <!-- Form Input -->
-        <form method="POST">
-            {% csrf_token %} <!-- Wajib ada di Django biar form lu nggak gampang dibobol hacker! -->
+        <form method="POST" id="form-pelacakan" autocomplete="off">
+            {% csrf_token %}
 
             <div class="form-group">
                 <label for="nik">Nomor Induk Karyawan (NIK)</label>
@@ -150,68 +150,95 @@
 
         <!-- Area Hasil Pencarian (Hanya Muncul Kalau NIK dan DOB Valid) -->
         {% if karyawan %}
-        <hr>
-        <h3 style="color: #2c3e50;">Hai, {{ karyawan.nama_lengkap }}!</h3>
-        <p style="color: #64748b; font-size: 14px; margin-top: -10px;">Berikut adalah riwayat dokumen Anda.</p>
+        <div id="hasil-pelacakan">
+            <hr>
+            <h3 style="color: #2c3e50;">Hai, {{ karyawan.nama_lengkap }}!</h3>
+            <p style="color: #64748b; font-size: 14px; margin-top: -10px;">Berikut adalah riwayat dokumen Anda.</p>
 
-        <h4 style="margin-top: 25px; color: #0f172a;">📦 Dokumen Masuk (Diterima)</h4>
-        {% if dokumen_masuk %}
-        <table>
-            <tr>
-                <th>Kategori</th>
-                <th>Tanggal Diterima</th>
-                <th>Pengirim</th>
-                <th>Status</th>
-                <th>Waktu Diambil</th>
-            </tr>
-            {% for doc in dokumen_masuk %}
-            <tr>
-                <td>{{ doc.kategori }}</td>
-                <td>{{ doc.tanggal_terima|date:"d-m-Y" }}</td>
-                <td>{{ doc.pengirim }}</td>
-                <td>{{ doc.status }}</td>
-                <td>
-                    {% if doc.tanggal_diambil %}
-                    {{ doc.tanggal_diambil|date:"d-m-Y H:i" }}
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-        {% else %}
-        <p style="font-size: 14px; color: #64748b;">Belum ada paket/dokumen yang masuk untuk Anda.</p>
-        {% endif %}
+            <h4 style="margin-top: 25px; color: #0f172a;">📦 Dokumen Masuk (Diterima)</h4>
+            {% if dokumen_masuk %}
+            <table>
+                <tr>
+                    <th>Kategori</th>
+                    <th>Tanggal Diterima</th>
+                    <th>Pengirim</th>
+                    <th>Status</th>
+                    <th>Waktu Diambil</th>
+                </tr>
+                {% for doc in dokumen_masuk %}
+                <tr>
+                    <td>{{ doc.kategori }}</td>
+                    <td>{{ doc.tanggal_terima|date:"d-m-Y" }}</td>
+                    <td>{{ doc.pengirim }}</td>
+                    <td>{{ doc.status }}</td>
+                    <td>
+                        {% if doc.tanggal_diambil %}
+                        {{ doc.tanggal_diambil|date:"d-m-Y H:i" }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% else %}
+            <p style="font-size: 14px; color: #64748b;">Belum ada paket/dokumen yang masuk untuk Anda.</p>
+            {% endif %}
 
-        <h4 style="margin-top: 25px; color: #0f172a;">📤 Dokumen Keluar (Dikirim)</h4>
-        {% if dokumen_keluar %}
-        <table>
-            <tr>
-                <th>Resi Pengiriman</th>
-                <th>Status</th>
-            </tr>
-            {% for doc in dokumen_keluar %}
-            <tr>
-                <td>
-                    {% if doc.resi_jne %}
-                    <a href="{{ doc.resi_jne }}" target="_blank">
-                        Lacak JNE
-                    </a>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                <td>{{ doc.status }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-        {% else %}
-        <p style="font-size: 14px; color: #64748b;">Belum ada riwayat pengiriman dari Anda.</p>
-        {% endif %}
+            <h4 style="margin-top: 25px; color: #0f172a;">📤 Dokumen Keluar (Dikirim)</h4>
+            {% if dokumen_keluar %}
+            <table>
+                <tr>
+                    <th>Resi Pengiriman</th>
+                    <th>Status</th>
+                </tr>
+                {% for doc in dokumen_keluar %}
+                <tr>
+                    <td>
+                        {% if doc.resi_jne %}
+                        <a href="{{ doc.resi_jne }}" target="_blank">
+                            Lacak JNE
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>{{ doc.status }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% else %}
+            <p style="font-size: 14px; color: #64748b;">Belum ada riwayat pengiriman dari Anda.</p>
+            {% endif %}
+        </div>
         {% endif %}
 
     </div>
+
+    <script>
+        function resetPortal() {
+            const hasil = document.getElementById('hasil-pelacakan');
+            const form = document.getElementById('form-pelacakan');
+
+            if (hasil) {
+                hasil.remove();
+            }
+
+            if (form) {
+                form.reset();
+            }
+        }
+
+        // Hapus hasil saat tab/browser ditutup atau halaman ditinggalkan.
+        window.addEventListener('pagehide', resetPortal);
+
+        // Backup untuk halaman yang dipulihkan dari cache/history browser.
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                resetPortal();
+            }
+        });
+    </script>
 
 </body>
 
