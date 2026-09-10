@@ -147,6 +147,11 @@ class DokumenKeluar(models.Model):
     def clean(self):
         super().clean()
 
+        if self.status == 'Sudah Diserahkan ke JNE' and not self.resi_jne:
+            raise ValidationError({
+                'resi_jne': 'URL Resi JNE wajib diisi jika status sudah diserahkan ke JNE.'
+            })
+
         if self.nik_pengirim and self.nama_pengirim:
             karyawan = Karyawan.objects.filter(
                 nik=self.nik_pengirim
