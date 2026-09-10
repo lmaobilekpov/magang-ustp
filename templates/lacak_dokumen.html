@@ -89,8 +89,15 @@
             border-left: 4px solid #22c55e;
         }
 
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
         table {
             width: 100%;
+            min-width: 600px;
             border-collapse: collapse;
             margin-top: 10px;
             font-size: 14px;
@@ -101,6 +108,7 @@
             border: 1px solid #e2e8f0;
             padding: 10px;
             text-align: left;
+            white-space: nowrap;
         }
 
         th {
@@ -113,6 +121,16 @@
             height: 1px;
             background: #e2e8f0;
             margin: 30px 0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -157,56 +175,60 @@
 
             <h4 style="margin-top: 25px; color: #0f172a;">📦 Dokumen Masuk (Diterima)</h4>
             {% if dokumen_masuk %}
-            <table>
-                <tr>
-                    <th>Kategori</th>
-                    <th>Tanggal Diterima</th>
-                    <th>Pengirim</th>
-                    <th>Status</th>
-                    <th>Waktu Diambil</th>
-                </tr>
-                {% for doc in dokumen_masuk %}
-                <tr>
-                    <td>{{ doc.kategori }}</td>
-                    <td>{{ doc.tanggal_terima|date:"d-m-Y" }}</td>
-                    <td>{{ doc.pengirim }}</td>
-                    <td>{{ doc.status }}</td>
-                    <td>
-                        {% if doc.tanggal_diambil %}
-                        {{ doc.tanggal_diambil|date:"d-m-Y H:i" }}
-                        {% else %}
-                        -
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <tr>
+                        <th>Kategori</th>
+                        <th>Tanggal Diterima</th>
+                        <th>Pengirim</th>
+                        <th>Status</th>
+                        <th>Waktu Diambil</th>
+                    </tr>
+                    {% for doc in dokumen_masuk %}
+                    <tr>
+                        <td>{{ doc.kategori }}</td>
+                        <td>{{ doc.tanggal_terima|date:"d-m-Y" }}</td>
+                        <td>{{ doc.pengirim }}</td>
+                        <td>{{ doc.status }}</td>
+                        <td>
+                            {% if doc.tanggal_diambil %}
+                            {{ doc.tanggal_diambil|date:"d-m-Y H:i" }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
             {% else %}
             <p style="font-size: 14px; color: #64748b;">Belum ada paket/dokumen yang masuk untuk Anda.</p>
             {% endif %}
 
             <h4 style="margin-top: 25px; color: #0f172a;">📤 Dokumen Keluar (Dikirim)</h4>
             {% if dokumen_keluar %}
-            <table>
-                <tr>
-                    <th>Resi Pengiriman</th>
-                    <th>Status</th>
-                </tr>
-                {% for doc in dokumen_keluar %}
-                <tr>
-                    <td>
-                        {% if doc.resi_jne %}
-                        <a href="{{ doc.resi_jne }}" target="_blank">
-                            Lacak JNE
-                        </a>
-                        {% else %}
-                        -
-                        {% endif %}
-                    </td>
-                    <td>{{ doc.status }}</td>
-                </tr>
-                {% endfor %}
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <tr>
+                        <th>Resi Pengiriman</th>
+                        <th>Status</th>
+                    </tr>
+                    {% for doc in dokumen_keluar %}
+                    <tr>
+                        <td>
+                            {% if doc.resi_jne %}
+                            <a href="{{ doc.resi_jne }}" target="_blank">
+                                Lacak JNE
+                            </a>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ doc.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
             {% else %}
             <p style="font-size: 14px; color: #64748b;">Belum ada riwayat pengiriman dari Anda.</p>
             {% endif %}
