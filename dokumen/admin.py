@@ -3,7 +3,7 @@ from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe 
-from .models import DokumenMasuk, DokumenKeluar, Karyawan
+from .models import DokumenMasuk, DokumenKeluar, Karyawan, DataPT
 
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
@@ -203,6 +203,12 @@ class KaryawanAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
     }
+
+@admin.register(DataPT)
+class DataPTAdmin(admin.ModelAdmin):
+    list_display = ('nama_pt',)
+    search_fields = ('nama_pt',)
+    ordering = ('nama_pt',)
 
 # Kustomisasi Teks Django Admin
 admin.site.site_header = "Dasbor Resepsionis USTP"
