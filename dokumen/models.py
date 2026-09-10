@@ -38,9 +38,27 @@ class DokumenMasuk(models.Model):
         ('Sudah Diambil', 'Sudah Diambil'),
     ]
 
+    JENIS_PENGIRIM_CHOICES = [
+        ('PT', 'PT / Instansi'),
+        ('Non-PT', 'Non-PT / Perseorangan'),
+    ]
+
     tanggal_terima = models.DateField(auto_now_add=True)
     kategori = models.CharField(max_length=50, choices=KATEGORI_CHOICES)
-    pengirim = models.CharField(max_length=255)
+    jenis_pengirim = models.CharField(
+        max_length=20,
+        choices=JENIS_PENGIRIM_CHOICES,
+        default='PT',
+        verbose_name="Jenis Pengirim"
+    )
+    pt_pengirim = models.ForeignKey(
+        DataPT,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        verbose_name="PT / Instansi Pengirim"
+    )
+    pengirim = models.CharField(max_length=255, verbose_name="Nama Pengirim")
     nama_penerima = models.CharField(max_length=255)
     nik_penerima = models.CharField(max_length=50, verbose_name="NIK penerima")
     foto_barang = models.ImageField(upload_to='foto_barang/', blank=True, null=True)
