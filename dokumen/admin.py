@@ -66,6 +66,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                             if (ptWrapper) ptWrapper.style.display = 'none';
                             if (pengirimWrapper) pengirimWrapper.style.display = '';
                             pengirimInput.readOnly = false;
+                            pengirimInput.value = '';
                             if (ptInput) ptInput.value = '';
                         }
                     }
