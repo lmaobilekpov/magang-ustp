@@ -172,6 +172,10 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
             })
             return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
+        # Resi JNE: jangan tampilkan history/autocomplete browser saat field diklik.
+        if db_field.name == 'resi_jne':
+            kwargs['widget'] = TextInput(attrs={'autocomplete': 'off'})
+
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def foto_thumbnail(self, obj):
