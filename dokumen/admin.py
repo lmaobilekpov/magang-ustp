@@ -92,9 +92,9 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             if current_value and current_value not in [value for value, label in choices]:
                 choices.append((current_value, current_value))
 
-            kwargs['widget'] = Select(attrs={'id': 'id_nama_penerima'})
-            kwargs['choices'] = choices
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+            formfield.widget = Select(attrs={'id': 'id_nama_penerima'})
+            formfield.choices = choices
             formfield.help_text = mark_safe("""
                 Pilih nama karyawan dari daftar.
                 <script>
@@ -128,9 +128,9 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                 (k.nik, k.nik) for k in karyawan_list
             ]
 
-            kwargs['widget'] = Select(attrs={'id': 'id_nik_penerima'})
-            kwargs['choices'] = choices
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+            formfield.widget = Select(attrs={'id': 'id_nik_penerima'})
+            formfield.choices = choices
             formfield.help_text = mark_safe("""
                 Pilih NIK dari daftar.
                 <script>
@@ -187,9 +187,9 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
                 (k.nama_lengkap, k.nama_lengkap) for k in karyawan_list
             ]
 
-            kwargs['widget'] = Select(attrs={'id': 'id_nama_pengirim'})
-            kwargs['choices'] = choices
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+            formfield.widget = Select(attrs={'id': 'id_nama_pengirim'})
+            formfield.choices = choices
             formfield.help_text = mark_safe("""
                 Pilih nama karyawan dari daftar.
                 <script>
@@ -222,9 +222,9 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
                 (k.nik, k.nik) for k in karyawan_list
             ]
 
-            kwargs['widget'] = Select(attrs={'id': 'id_nik_pengirim'})
-            kwargs['choices'] = choices
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+            formfield.widget = Select(attrs={'id': 'id_nik_pengirim'})
+            formfield.choices = choices
             formfield.help_text = mark_safe("""
                 Pilih NIK dari daftar.
                 <script>
