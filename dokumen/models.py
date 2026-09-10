@@ -30,7 +30,6 @@ class DokumenMasuk(models.Model):
     KATEGORI_CHOICES = [
         ('Surat Resmi', 'Surat Resmi'),
         ('Paket Pribadi', 'Paket Pribadi'),
-        ('Inventaris IT', 'Inventaris IT'),
     ]
 
     STATUS_CHOICES = [
@@ -64,7 +63,7 @@ class DokumenMasuk(models.Model):
     foto_barang = models.ImageField(upload_to='foto_barang/', blank=True, null=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Di Resepsionis')
     dob_pengambil = models.DateField(
-        blank=True, 
+        blank=True,
         null=True,
         verbose_name="Tanggal Lahir Pengambil (Verifikasi)",
         help_text="Sebutkan tanggal lahir saat pengambilan barang untuk verifikasi identitas."
@@ -100,25 +99,15 @@ class DokumenMasuk(models.Model):
             # Cek apakah nama penerima cocok dengan data HRD
             if self.nama_penerima.strip().casefold() != karyawan_asli.nama_lengkap.strip().casefold():
                 raise ValidationError({
-                    'nama_penerima': 'Nama tidak sesuai dengan NIK!'                
-                    })
+                    'nama_penerima': 'Nama tidak sesuai dengan NIK!'
+                })
 
             # Cek apakah tanggal lahir cocok dengan data HRD
             if self.dob_pengambil != karyawan_asli.tanggal_lahir:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal lahir salah!'
                 })
-                # Cek apakah nama penerima cocok dengan data HRD
-                if self.nama_penerima.strip().casefold() != karyawan_asli.nama_lengkap.strip().casefold():
-                    raise ValidationError({
-                        'nama_penerima': 'Verifikasi Gagal: Nama penerima tidak cocok dengan data HRD!'
-                    })
 
-                # Cek apakah tanggal lahir cocok dengan data HRD
-                if self.dob_pengambil != karyawan_asli.tanggal_lahir:
-                    raise ValidationError({
-                        'dob_pengambil': 'Verifikasi Gagal: Tanggal lahir tidak cocok dengan data HRD!'
-                    })
     def save(self, *args, **kwargs):
         from django.utils import timezone
 
@@ -127,13 +116,10 @@ class DokumenMasuk(models.Model):
 
             if data_lama.status == 'Sudah Diambil':
                 self.tanggal_diambil = data_lama.tanggal_diambil
-
             elif self.status == 'Sudah Diambil':
                 self.tanggal_diambil = timezone.now()
-
             else:
                 self.tanggal_diambil = None
-
         else:
             if self.status == 'Sudah Diambil':
                 self.tanggal_diambil = timezone.now()
@@ -157,7 +143,7 @@ class DokumenKeluar(models.Model):
     foto_dokumen = models.ImageField(upload_to='foto_dokumen/', blank=True, null=True)
     resi_jne = models.URLField(blank=True, null=True, verbose_name="URL Resi JNE")
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Menunggu Kurir')
-    
+
     def clean(self):
         super().clean()
 
@@ -175,13 +161,13 @@ class DokumenKeluar(models.Model):
                 raise ValidationError({
                     'nama_pengirim': 'Nama pengirim tidak sesuai dengan NIK!'
                 })
+
     class Meta:
         verbose_name_plural = 'Dokumen Keluar'
 
     def save(self, *args, **kwargs):
         if not self.nomor_resi_internal:
             today = timezone.now().date()
-            # Mencari dokumen yang dibuat hari ini
             count = DokumenKeluar.objects.filter(tanggal_terima=today).count()
             new_number = count + 1
             date_str = today.strftime("%Y%m%d")
@@ -189,6 +175,5 @@ class DokumenKeluar(models.Model):
 
         super().save(*args, **kwargs)
 
-    
     def __str__(self):
         return f"{self.nomor_resi_internal} - {self.nama_pengirim}"
