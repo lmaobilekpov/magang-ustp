@@ -84,14 +84,14 @@ class DokumenMasukAdmin(admin.ModelAdmin):
         if db_field.name == 'nama_penerima':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
-                (k.nama_lengkap, k.nama_lengkap) for k in karyawan_list
+                (k.nama_lengkap, f"{k.nama_lengkap} — {k.nik[-4:]}") for k in karyawan_list
             ]
-            mapping = {k.nama_lengkap: k.nik for k in karyawan_list}
+            mapping = {f"{k.nama_lengkap} — {k.nik[-4:]}": k.nik for k in karyawan_list}
 
             widget = forms.Select(attrs={
                 'style': 'width: 300px;',
                 'data-map': json.dumps(mapping, ensure_ascii=False),
-                'onchange': "document.getElementById('id_nik_penerima').value = JSON.parse(this.dataset.map)[this.value] || '';"
+                'onchange': "document.getElementById('id_nik_penerima').value = JSON.parse(this.dataset.map)[(this.options[this.selectedIndex] || {}).text] || '';"
             })
             return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
@@ -146,14 +146,14 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
         if db_field.name == 'nama_pengirim':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
-                (k.nama_lengkap, k.nama_lengkap) for k in karyawan_list
+                (k.nama_lengkap, f"{k.nama_lengkap} — {k.nik[-4:]}") for k in karyawan_list
             ]
-            mapping = {k.nama_lengkap: k.nik for k in karyawan_list}
+            mapping = {f"{k.nama_lengkap} — {k.nik[-4:]}": k.nik for k in karyawan_list}
 
             widget = forms.Select(attrs={
                 'style': 'width: 300px;',
                 'data-map': json.dumps(mapping, ensure_ascii=False),
-                'onchange': "document.getElementById('id_nik_pengirim').value = JSON.parse(this.dataset.map)[this.value] || '';"
+                'onchange': "document.getElementById('id_nik_pengirim').value = JSON.parse(this.dataset.map)[(this.options[this.selectedIndex] || {}).text] || '';"
             })
             return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
