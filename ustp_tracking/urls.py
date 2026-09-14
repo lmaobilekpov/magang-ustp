@@ -1,15 +1,12 @@
 from django.contrib import admin
 from django.urls import path
-from dokumen import views  # Import file views yang baru aja lu bikin
+from dokumen import views
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    # Ini pintu belakang buat lu dan resepsionis
     path('admin/', admin.site.urls),
-    
-    # Ini pintu depan (Portal Karyawan), roket Django resmi digusur!
-    path('', views.lacak_dokumen, name='lacak_dokumen'), 
+    path('', views.lacak_dokumen, name='lacak_dokumen'),
 ]
 
 if settings.DEBUG:
