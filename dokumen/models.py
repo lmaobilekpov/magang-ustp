@@ -5,18 +5,14 @@ from django.core.exceptions import ValidationError
 
 class Karyawan(models.Model):
     kode_karyawan = models.CharField(
-        max_length=50,
-        unique=True,
-        null=True,
-        blank=True,
-        verbose_name="Kode Karyawan"
+    max_length=50,
+    unique=True,
+    verbose_name="Kode Karyawan"
     )
     nama_lengkap = models.CharField(max_length=255, verbose_name="Nama Lengkap")
     jabatan = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        verbose_name="Jabatan"
+    max_length=255,
+    verbose_name="Jabatan"
     )
     tanggal_lahir = models.DateField(verbose_name="Tanggal Lahir")
 
