@@ -17,16 +17,17 @@ class Karyawan(models.Model):
         return f"{self.nama_lengkap} ({self.nik})"
 
 
-class DataPT(models.Model):
-    nama_pt = models.CharField(max_length=255, unique=True, verbose_name="Nama PT / Instansi")
+class Supplier(models.Model):
+    kode_supplier = models.CharField(max_length=100, unique=True, verbose_name="Kode Supplier")
+    nama_supplier = models.CharField(max_length=255, verbose_name="Nama Supplier")
 
     class Meta:
-        verbose_name = 'PT / Instansi'
-        verbose_name_plural = 'Data PT / Instansi'
-        ordering = ['nama_pt']
+        verbose_name = 'Supplier'
+        verbose_name_plural = 'Data Supplier'
+        ordering = ['nama_supplier']
 
     def __str__(self):
-        return self.nama_pt
+        return f"{self.nama_supplier} ({self.kode_supplier})"
 
 
 class DokumenMasuk(models.Model):
@@ -54,7 +55,7 @@ class DokumenMasuk(models.Model):
         verbose_name="Jenis Pengirim"
     )
     pt_pengirim = models.ForeignKey(
-        DataPT,
+        Supplier,
         on_delete=models.PROTECT,
         blank=True,
         null=True,
