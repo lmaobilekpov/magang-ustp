@@ -4,8 +4,9 @@ from django.core.exceptions import ValidationError
 
 
 class Karyawan(models.Model):
-    nik = models.CharField(max_length=50, unique=True, verbose_name="NIK")
+    kode_karyawan = models.CharField(max_length=50, unique=True, verbose_name="Kode Karyawan")
     nama_lengkap = models.CharField(max_length=255, verbose_name="Nama Lengkap")
+    jabatan = models.CharField(max_length=255, verbose_name="Jabatan")
     tanggal_lahir = models.DateField(verbose_name="Tanggal Lahir")
 
     class Meta:
@@ -14,7 +15,7 @@ class Karyawan(models.Model):
         ordering = ['nama_lengkap']
 
     def __str__(self):
-        return f"{self.nama_lengkap} ({self.nik})"
+        return f"{self.nama_lengkap} ({self.kode_karyawan})"
 
 
 class Supplier(models.Model):
@@ -62,8 +63,7 @@ class DokumenMasuk(models.Model):
         verbose_name="PT / Instansi Pengirim"
     )
     pengirim = models.CharField(max_length=255, verbose_name="Nama Pengirim")
-    nama_penerima = models.CharField(max_length=255)
-    nik_penerima = models.CharField(max_length=50, verbose_name="NIK penerima")
+    nama_penerima = models.CharField(max_length=255, verbose_name="Nama Penerima")
     foto_barang = models.ImageField(upload_to='foto_barang/', blank=True, null=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Di Resepsionis')
     dob_pengambil = models.DateField(
@@ -83,29 +83,21 @@ class DokumenMasuk(models.Model):
 
     def clean(self):
         super().clean()
+
         if self.status == 'Sudah Diambil':
             if not self.dob_pengambil:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
                 })
 
-            karyawan_asli = Karyawan.objects.filter(
-                nik=self.nik_penerima
+            karyawan_cocok = Karyawan.objects.filter(
+                nama_lengkap__iexact=self.nama_penerima.strip(),
+                tanggal_lahir=self.dob_pengambil,
             ).first()
 
-            if not karyawan_asli:
+            if not karyawan_cocok:
                 raise ValidationError({
-                    'nik_penerima': 'NIK tidak terdaftar di data HRD!'
-                })
-
-            if self.nama_penerima.strip().casefold() != karyawan_asli.nama_lengkap.strip().casefold():
-                raise ValidationError({
-                    'nama_penerima': 'Nama tidak sesuai dengan NIK!'
-                })
-
-            if self.dob_pengambil != karyawan_asli.tanggal_lahir:
-                raise ValidationError({
-                    'dob_pengambil': 'Tanggal lahir salah!'
+                    'dob_pengambil': 'Tanggal lahir tidak sesuai dengan data karyawan penerima.'
                 })
 
     def save(self, *args, **kwargs):
@@ -137,7 +129,6 @@ class DokumenKeluar(models.Model):
     nomor_resi_internal = models.CharField(max_length=20, unique=True, blank=True)
     tanggal_terima = models.DateField(auto_now_add=True)
     nama_pengirim = models.CharField(max_length=255)
-    nik_pengirim = models.CharField(max_length=50, verbose_name="NIK pengirim")
     deskripsi = models.TextField()
     foto_dokumen = models.ImageField(upload_to='foto_dokumen/', blank=True, null=True)
     resi_jne = models.URLField(blank=True, null=True, verbose_name="URL Resi JNE")
@@ -150,21 +141,6 @@ class DokumenKeluar(models.Model):
             raise ValidationError({
                 'resi_jne': 'URL Resi JNE wajib diisi jika status sudah diserahkan ke JNE.'
             })
-
-        if self.nik_pengirim and self.nama_pengirim:
-            karyawan = Karyawan.objects.filter(
-                nik=self.nik_pengirim
-            ).first()
-
-            if not karyawan:
-                raise ValidationError({
-                    'nik_pengirim': 'NIK pengirim tidak terdaftar di Data Karyawan!'
-                })
-
-            if self.nama_pengirim.strip().casefold() != karyawan.nama_lengkap.strip().casefold():
-                raise ValidationError({
-                    'nama_pengirim': 'Nama pengirim tidak sesuai dengan NIK!'
-                })
 
     class Meta:
         verbose_name_plural = 'Dokumen Keluar'
