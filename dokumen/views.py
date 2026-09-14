@@ -12,12 +12,17 @@ def render_portal(request, context=None):
 
 def lacak_dokumen(request):
     context = {}
-    nik_session = request.session.pop('nik_terverifikasi', None)
+    karyawan_id = request.session.pop('karyawan_terverifikasi', None)
 
-    if nik_session:
-        karyawan = Karyawan.objects.get(nik=nik_session)
-        dokumen_keluar = DokumenKeluar.objects.filter(nik_pengirim=nik_session)
-        dokumen_masuk = DokumenMasuk.objects.filter(nik_penerima=nik_session)
+    if karyawan_id:
+        try:
+            karyawan = Karyawan.objects.get(pk=karyawan_id)
+        except Karyawan.DoesNotExist:
+            context['pesan_error'] = 'Data karyawan tidak ditemukan dalam sistem.'
+            return render_portal(request, context)
+
+        dokumen_keluar = DokumenKeluar.objects.filter(nama_pengirim=karyawan.nama_lengkap)
+        dokumen_masuk = DokumenMasuk.objects.filter(nama_penerima=karyawan.nama_lengkap)
 
         context = {
             'karyawan': karyawan,
@@ -28,19 +33,20 @@ def lacak_dokumen(request):
         return render_portal(request, context)
 
     if request.method == 'POST':
-        nik_input = request.POST.get('nik')
         dob_input = request.POST.get('tanggal_lahir')
 
-        try:
-            karyawan = Karyawan.objects.get(nik=nik_input)
+        if not dob_input:
+            context['pesan_error'] = 'Silakan masukkan tanggal lahir.'
+            return render_portal(request, context)
 
-            if str(karyawan.tanggal_lahir) == dob_input:
-                request.session['nik_terverifikasi'] = nik_input
-                return redirect('lacak_dokumen')
-            else:
-                context['pesan_error'] = "Verifikasi Gagal: Tanggal Lahir tidak cocok!"
+        karyawan_list = list(Karyawan.objects.filter(tanggal_lahir=dob_input))
 
-        except Karyawan.DoesNotExist:
-            context['pesan_error'] = "Verifikasi Gagal: NIK tidak ditemukan dalam sistem!"
+        if not karyawan_list:
+            context['pesan_error'] = 'Verifikasi Gagal: Tanggal Lahir tidak ditemukan dalam sistem!'
+        elif len(karyawan_list) > 1:
+            context['pesan_error'] = 'Verifikasi Gagal: Tanggal Lahir cocok dengan lebih dari satu karyawan. Silakan hubungi resepsionis.'
+        else:
+            request.session['karyawan_terverifikasi'] = karyawan_list[0].pk
+            return redirect('lacak_dokumen')
 
     return render_portal(request, context)
