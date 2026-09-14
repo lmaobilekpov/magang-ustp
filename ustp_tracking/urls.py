@@ -5,11 +5,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.lacak_dokumen, name='lacak_dokumen'),
-]
-
-urlpatterns = [
     # Ini pintu belakang buat lu dan resepsionis
     path('admin/', admin.site.urls),
     
