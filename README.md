@@ -6,7 +6,7 @@ Sistem informasi manajemen dan pelacakan (*tracking*) dokumen fisik internal ber
 
 ## 📌 Status Progres Proyek
 
-Aplikasi saat ini telah memasuki tahap penyempurnaan fitur inti (Core Features & Business Logic Hardening). Sistem telah dilengkapi validasi data relasional multi-entitas, sinkronisasi otomatis identitas karyawan dan rekanan PT, perlindungan privasi data portal mandiri berbasis sesi dan anti-cache, serta pengelolaan kredensial aman berbasis *environment variables*.
+Aplikasi telah menyelesaikan tahap penguatan logika bisnis inti (*Business Logic Hardening*), keandalan konkurensi data, dan standarisasi kode (*clean code*). Sistem kini dilengkapi dengan **14 skenario automated unit tests** (100% lulus), transaksi atomik pada penomoran resi otomatis, mekanisme disambiguasi nama karyawan dengan 4 digit NIK, serta validasi integritas data multi-entitas yang ketat.
 
 ---
 
@@ -43,8 +43,9 @@ Aplikasi saat ini telah memasuki tahap penyempurnaan fitur inti (Core Features &
   - **Kategori Terstandarisasi:** *Surat Resmi* dan *Paket Pribadi*.
   - **Fleksibilitas Pengirim:** Pilihan jenis pengirim antara **PT / Instansi** (memilih dari master `DataPT`) atau **Non-PT / Perseorangan** (input manual nama perseorangan).
   - **Dynamic Admin Form:** Form otomatis menyesuaikan tampilan input PT atau nama manual sesuai opsi yang dipilih, dilengkapi proteksi fallback di sisi backend.
-- **Sinkronisasi 2-Arah Penerima:**
-  - Dropdown interaktif antara **Nama Penerima** dan **NIK Penerima** di Dasbor Admin — memilih nama otomatis mengisi NIK, dan sebaliknya.
+- **Disambiguasi & Sinkronisasi 2-Arah Penerima:**
+  - Dropdown **Nama Penerima** menampilkan format `Nama Lengkap — 4 digit terakhir NIK` (contoh: `Budi Santoso — 5678`) untuk menghilangkan ambiguitas jika ada karyawan bernama sama.
+  - Sinkronisasi otomatis 2-arah antara dropdown Nama dan dropdown NIK (memilih Nama otomatis mengisi NIK lengkap, dan sebaliknya).
 - **Validasi Serah Terima Berlapis (`clean()`):**
   - Memverifikasi bahwa NIK dan Nama penerima valid dan terdaftar di master data karyawan.
   - Saat status diubah menjadi *Sudah Diambil*, resepsionis wajib menginput **Tanggal Lahir Pengambil**. Sistem akan mencocokkan tanggal lahir tersebut dengan database sebelum memperbolehkan penyimpanan.
@@ -58,15 +59,16 @@ Aplikasi saat ini telah memasuki tahap penyempurnaan fitur inti (Core Features &
 ---
 
 ### 4. 📤 Manajemen Dokumen Keluar (`DokumenKeluar`)
-- **Penomoran Resi Internal Otomatis (Incremental):**
-  - Resi internal berformat `OUT-YYYYMMDD-001`, `OUT-YYYYMMDD-002`, dst., dibuat otomatis berdasarkan tanggal penyerahan ke resepsionis dan berurutan presisi setiap harinya.
-- **Sinkronisasi Pengirim:**
-  - Dropdown Nama Pengirim dan NIK Pengirim tersinkronisasi langsung dari Master Data Karyawan.
+- **Penomoran Resi Internal Otomatis & Transaksi Atomik:**
+  - Resi internal berformat `OUT-YYYYMMDD-001`, `OUT-YYYYMMDD-002`, dst., dibuat otomatis berdasarkan tanggal penyerahan ke resepsionis dan berurutan setiap harinya.
+  - Dilengkapi proteksi **transaksi atomik (`transaction.atomic()`)** dan mekanisme *retry loop* (hingga 5 kali percobaan) untuk mencegah tabrakan penomoran (*race condition / duplicate key*) pada konkurensi penyimpanan.
+- **Disambiguasi & Sinkronisasi Pengirim:**
+  - Dropdown Nama Pengirim menampilkan label `Nama Lengkap — 4 digit terakhir NIK` dan tersinkronisasi otomatis dengan NIK Pengirim.
   - Validasi kecocokan NIK dan Nama Pengirim terhadap master data.
 - **Standarisasi Status & Validasi Ekspedisi:**
   - Pilihan status: *Menunggu Kurir* dan *Sudah Diserahkan ke JNE*.
   - **Validasi Resi Ekspedisi:** Sistem mewajibkan pengisian URL Resi JNE jika status diubah menjadi *Sudah Diserahkan ke JNE*.
-  - Field URL Resi JNE dilengkapi pencegahan *autocomplete browser* (`autocomplete="off"`) untuk mencegah salah pilih tautan resi sebelumnya.
+  - Field URL Resi JNE dilengkapi pencegahan *autocomplete browser* (`autocomplete="off"`).
 - **Dokumentasi Fisik:** Penyimpanan deskripsi dokumen serta unggahan foto fisik sebelum paket diserahkan ke kurir.
 
 ---
@@ -76,13 +78,36 @@ Aplikasi saat ini telah memasuki tahap penyempurnaan fitur inti (Core Features &
 - **Filter & Pencarian Lintas Entitas:** Filter status, kategori, dan tanggal terima, serta pencarian instan berbasis NIK, nama pengirim/penerima, dan nomor resi internal.
 - **Dukungan Widget Native:** Input tanggal menggunakan kalender *native* HTML5 (`type="date"`).
 - **Format Parsing Waktu ISO:** Dukungan input format waktu *native* browser tanpa gangguan konflik lokalisasi sistem.
-- **Lokalisasi Waktu:** Berjalan di zona waktu **WIB (`Asia/Jakarta`)** dengan format waktu dan antarmuka yang bersih.
+- **Lokalisasi Waktu:** Berjalan di zona waktu **WIB (`Asia/Jakarta`)** dengan format antarmuka yang bersih.
 
 ---
 
-### 6. 🔒 Keamanan & Praktik Terbaik (Best Practices)
-- **Kredensial Aman:** `SECRET_KEY` Django telah dipindahkan ke *Environment Variable* (`DJANGO_SECRET_KEY`) dan tidak disimpan secara hardcode di repositori.
-- **Manajemen Media Terisolasi:** Direktori `media/` dipisahkan secara terstruktur dan terdaftar dalam `.gitignore` untuk mencegah unggahan foto lokal bocor ke version control.
+### 6. 🧪 Pengujian Otomatis (Automated Unit Tests)
+Sistem memiliki test suite komprehensif pada `dokumen/tests.py` yang mencakup **14 pengujian otomatis**:
+- **`DokumenMasukTest` (6 tes):**
+  - Pengisian otomatis stempel waktu saat status *Sudah Diambil*.
+  - Penolakan dokumen jika status *Sudah Diambil* tanpa DOB pengambil.
+  - Pemeliharaan stempel waktu lama saat status tetap *Sudah Diambil*.
+  - Penolakan NIK penerima yang tidak terdaftar di data HRD.
+  - Penolakan nama penerima yang tidak cocok dengan NIK.
+  - Pemastian dokumen berstatus *Di Resepsionis* tidak memiliki waktu pengambilan.
+- **`DokumenKeluarTest` (6 tes):**
+  - Pembuatan otomatis nomor resi internal harian format `OUT-YYYYMMDD-001`.
+  - Penolakan NIK pengirim yang tidak terdaftar di master data.
+  - Penolakan nama pengirim yang tidak cocok dengan NIK.
+  - Penolakan status *Sudah Diserahkan ke JNE* jika URL resi belum diisi.
+  - Urutan penomoran resi bertambah secara konsisten (001, 002, 003).
+  - Reset nomor urut kembali ke `001` saat berganti hari.
+- **`PortalKaryawanTest` (2 tes):**
+  - Verifikasi kombinasi NIK dan DOB yang benar berhasil menampilkan data pelacakan.
+  - Verifikasi penolakan autentikasi jika DOB yang diinput tidak cocok.
+
+---
+
+### 7. 🔒 Keamanan & Praktik Terbaik (Best Practices)
+- **Kredensial Aman:** `SECRET_KEY` Django dipindahkan ke *Environment Variable* (`DJANGO_SECRET_KEY`) dan tidak disimpan di repositori.
+- **Manajemen Media Terisolasi:** Direktori `media/` dipisahkan secara terstruktur dan terdaftar dalam `.gitignore`.
+- **Clean Codebase:** Kode program telah dibersihkan dari komentar-komentar percakapan/informal sehingga lebih profesional dan siap produksi.
 
 ---
 
@@ -94,6 +119,7 @@ magang-ustp/
 │   ├── admin.py             # Konfigurasi Admin, form sync 2-arah, dynamic script
 │   ├── apps.py              # Konfigurasi metadata aplikasi dokumen
 │   ├── models.py            # Model Karyawan, DataPT, DokumenMasuk, DokumenKeluar
+│   ├── tests.py             # 14 skenario automated unit tests
 │   ├── views.py             # View Portal Karyawan, PRG pattern, cache-control
 │   └── migrations/          # Riwayat migrasi database skema (0001 - 0011)
 ├── static/                  # File statis (CSS, JavaScript, Aset gambar)
@@ -153,12 +179,17 @@ magang-ustp/
    python manage.py migrate
    ```
 
-4. **Jalankan Development Server:**
+4. **Jalankan Automated Tests (Opsional):**
+   ```bash
+   python manage.py test
+   ```
+
+5. **Jalankan Development Server:**
    ```bash
    python manage.py runserver
    ```
 
-5. **Akses Aplikasi via Browser:**
+6. **Akses Aplikasi via Browser:**
    - **Portal Karyawan (Pelacakan Mandiri):** `http://127.0.0.1:8000/`
    - **Dasbor Resepsionis (Admin):** `http://127.0.0.1:8000/admin/`
 
@@ -171,7 +202,7 @@ graph TD
     subgraph Dokumen Masuk
         A[Surat / Paket Tiba di Resepsionis] --> B[Resepsionis Buka Dasbor Admin]
         B --> C[Pilih Jenis: PT atau Non-PT]
-        C --> D[Pilih Penerima via Dropdown Karyawan]
+        C --> D[Pilih Penerima via Dropdown Nama - 4 Digit NIK]
         D --> E[Simpan: Status 'Di Resepsionis']
         E --> F{Karyawan Datang Mengambil?}
         F -- Ya --> G[Resepsionis Minta Tanggal Lahir Karyawan]
@@ -189,7 +220,7 @@ graph TD
 
     subgraph Dokumen Keluar
         P[Karyawan Titip Dokumen Keluar] --> Q[Resepsionis Pilih Pengirim via Dropdown]
-        Q --> R[Sistem Auto-Generate Resi OUT-YYYYMMDD-XXX]
+        Q --> R[Sistem Auto-Generate Resi OUT-YYYYMMDD-XXX via Transaksi Atomik]
         R --> S[Status: Menunggu Kurir]
         S --> T[Kurir JNE Ambil Dokumen]
         T --> U[Input URL Resi JNE & Ubah Status: Sudah Diserahkan ke JNE]
