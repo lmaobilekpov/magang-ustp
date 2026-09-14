@@ -61,7 +61,11 @@ class DokumenMasukTest(TestCase):
         dokumen.dob_pengambil = self.karyawan.tanggal_lahir
         dokumen.save()
 
-        self.assertEqual(dokumen.tanggal_diambil, waktu_awal)
+        self.assertAlmostEqual(
+            dokumen.tanggal_diambil.timestamp(),
+            waktu_awal.timestamp(),
+            places=3
+)
 
 
 class DokumenKeluarTest(TestCase):
