@@ -174,23 +174,40 @@ class DokumenKeluar(models.Model):
         verbose_name_plural = 'Dokumen Keluar'
 
     def save(self, *args, **kwargs):
-        if not self.nomor_resi_internal:
-            today = timezone.now().date()
-            date_str = today.strftime("%Y%m%d")
-            nomor_terakhir = DokumenKeluar.objects.filter(
-                tanggal_terima=today,
-                nomor_resi_internal__startswith=f"OUT-{date_str}-"
-            ).order_by('-nomor_resi_internal').first()
+        if self.nomor_resi_internal:
+            super().save(*args, **kwargs)
+            return
 
-            if nomor_terakhir:
-                nomor_terakhir = int(nomor_terakhir.nomor_resi_internal.split('-')[-1])
-                new_number = nomor_terakhir + 1
-            else:
-                new_number = 1
+        from django.db import IntegrityError, transaction
 
-            self.nomor_resi_internal = f"OUT-{date_str}-{new_number:03d}"
+        today = timezone.now().date()
+        date_str = today.strftime("%Y%m%d")
 
-        super().save(*args, **kwargs)
+        for _ in range(5):
+            try:
+                with transaction.atomic():
+                    nomor_terakhir = DokumenKeluar.objects.filter(
+                        tanggal_terima=today,
+                        nomor_resi_internal__startswith=f"OUT-{date_str}-"
+                    ).order_by('-nomor_resi_internal').first()
+
+                    if nomor_terakhir:
+                        nomor_terakhir = int(
+                            nomor_terakhir.nomor_resi_internal.split('-')[-1]
+                        )
+                        new_number = nomor_terakhir + 1
+                    else:
+                        new_number = 1
+
+                    self.nomor_resi_internal = f"OUT-{date_str}-{new_number:03d}"
+                    super().save(*args, **kwargs)
+
+                return
+
+            except IntegrityError:
+                self.nomor_resi_internal = ""
+
+        raise IntegrityError("Gagal membuat nomor resi internal yang unik.")
 
     def __str__(self):
         return f"{self.nomor_resi_internal} - {self.nama_pengirim}"
