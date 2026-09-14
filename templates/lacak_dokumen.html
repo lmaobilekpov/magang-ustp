@@ -154,11 +154,6 @@
             {% csrf_token %}
 
             <div class="form-group">
-                <label for="nik">Nomor Induk Karyawan (NIK)</label>
-                <input type="text" id="nik" name="nik" placeholder="Contoh: 12345678" required>
-            </div>
-
-            <div class="form-group">
                 <label for="tanggal_lahir">Tanggal Lahir</label>
                 <input type="date" id="tanggal_lahir" name="tanggal_lahir" required>
             </div>
@@ -166,7 +161,7 @@
             <button type="submit">Lacak Dokumen Saya</button>
         </form>
 
-        <!-- Area Hasil Pencarian (Hanya Muncul Kalau NIK dan DOB Valid) -->
+        <!-- Area Hasil Pencarian (Muncul Kalau Tanggal Lahir Valid dan Unik) -->
         {% if karyawan %}
         <div id="hasil-pelacakan">
             <hr>
