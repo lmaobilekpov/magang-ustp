@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+
 class Karyawan(models.Model):
     nik = models.CharField(max_length=50, unique=True, verbose_name="NIK")
     nama_lengkap = models.CharField(max_length=255, verbose_name="Nama Lengkap")
@@ -15,6 +16,7 @@ class Karyawan(models.Model):
     def __str__(self):
         return f"{self.nama_lengkap} ({self.nik})"
 
+
 class DataPT(models.Model):
     nama_pt = models.CharField(max_length=255, unique=True, verbose_name="Nama PT / Instansi")
 
@@ -25,6 +27,7 @@ class DataPT(models.Model):
 
     def __str__(self):
         return self.nama_pt
+
 
 class DokumenMasuk(models.Model):
     KATEGORI_CHOICES = [
@@ -85,43 +88,34 @@ class DokumenMasuk(models.Model):
                     'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
                 })
 
-            # Cari data karyawan berdasarkan NIK
             karyawan_asli = Karyawan.objects.filter(
                 nik=self.nik_penerima
             ).first()
 
-            # NIK wajib terdaftar di data HRD
             if not karyawan_asli:
                 raise ValidationError({
                     'nik_penerima': 'NIK tidak terdaftar di data HRD!'
                 })
 
-            # Cek apakah nama penerima cocok dengan data HRD
             if self.nama_penerima.strip().casefold() != karyawan_asli.nama_lengkap.strip().casefold():
                 raise ValidationError({
                     'nama_penerima': 'Nama tidak sesuai dengan NIK!'
                 })
 
-            # Cek apakah tanggal lahir cocok dengan data HRD
             if self.dob_pengambil != karyawan_asli.tanggal_lahir:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal lahir salah!'
                 })
 
     def save(self, *args, **kwargs):
-        from django.utils import timezone
-
         if self.pk:
             data_lama = DokumenMasuk.objects.get(pk=self.pk)
 
             if data_lama.status == 'Sudah Diambil' and self.status == 'Sudah Diambil':
-                # Kalau tetap sudah diambil, pertahankan waktu pengambilan lama
                 self.tanggal_diambil = data_lama.tanggal_diambil
             elif self.status == 'Sudah Diambil':
-                # Kalau baru berubah menjadi sudah diambil, catat waktu sekarang
                 self.tanggal_diambil = timezone.now()
             else:
-                # Kalau status dikembalikan ke resepsionis, hapus waktu pengambilan
                 self.tanggal_diambil = None
         else:
             if self.status == 'Sudah Diambil':
@@ -131,6 +125,7 @@ class DokumenMasuk(models.Model):
 
     def __str__(self):
         return f"{self.kategori} - {self.nama_penerima}"
+
 
 class DokumenKeluar(models.Model):
     STATUS_CHOICES = [
