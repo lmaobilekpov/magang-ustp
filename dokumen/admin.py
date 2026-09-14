@@ -4,7 +4,7 @@ from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import DokumenMasuk, DokumenKeluar, Karyawan, DataPT
+from .models import DokumenMasuk, DokumenKeluar, Karyawan, Supplier
 import json
 
 @admin.register(DokumenMasuk)
@@ -37,7 +37,6 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     foto_thumbnail.short_description = "Foto"
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
-        # Pilih jenis pengirim + tampilkan field yang sesuai
         if db_field.name == 'jenis_pengirim':
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
             formfield.help_text = mark_safe("""
@@ -76,11 +75,10 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                     updatePengirim();
                 });
                 </script>
-                Pilih <b>PT / Instansi</b> untuk memilih dari Data PT, atau <b>Non-PT / Perseorangan</b> untuk mengetik nama pengirim manual.
+                Pilih <b>PT / Instansi</b> untuk memilih dari Data Supplier, atau <b>Non-PT / Perseorangan</b> untuk mengetik nama pengirim manual.
             """)
             return formfield
 
-        # Nama penerima: dropdown biasa dari Data Karyawan
         if db_field.name == 'nama_penerima':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
@@ -95,7 +93,6 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             })
             return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
-        # NIK penerima: dropdown biasa dari Data Karyawan
         if db_field.name == 'nik_penerima':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
@@ -110,11 +107,9 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             })
             return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
-        # Pengirim manual saat Non-PT
         if db_field.name == 'pengirim':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'id': 'id_pengirim'})
 
-        # Override DateTimeField agar bisa parsing format datetime-local
         if isinstance(db_field, models.DateTimeField):
             kwargs['form_class'] = DateTimeFormField
             kwargs['widget'] = DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')
@@ -124,10 +119,9 @@ class DokumenMasukAdmin(admin.ModelAdmin):
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
-        # Pastikan nilai pengirim tetap benar walaupun JavaScript di browser tidak berjalan.
         if obj.jenis_pengirim == 'PT':
             if obj.pt_pengirim:
-                obj.pengirim = obj.pt_pengirim.nama_pt
+                obj.pengirim = obj.pt_pengirim.nama_supplier
         else:
             obj.pt_pengirim = None
 
@@ -142,7 +136,6 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
     readonly_fields = ('nomor_resi_internal',)
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
-        # Nama pengirim: dropdown dari Data Karyawan
         if db_field.name == 'nama_pengirim':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
@@ -157,7 +150,6 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
             })
             return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
-        # NIK pengirim: dropdown dari Data Karyawan
         if db_field.name == 'nik_pengirim':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
@@ -172,7 +164,6 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
             })
             return forms.ChoiceField(choices=choices, required=True, widget=widget)
 
-        # Resi JNE: jangan tampilkan history/autocomplete browser saat field diklik.
         if db_field.name == 'resi_jne':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off'})
 
@@ -193,11 +184,11 @@ class KaryawanAdmin(admin.ModelAdmin):
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
     }
 
-@admin.register(DataPT)
-class DataPTAdmin(admin.ModelAdmin):
-    list_display = ('nama_pt',)
-    search_fields = ('nama_pt',)
-    ordering = ('nama_pt',)
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
+    list_display = ('kode_supplier', 'nama_supplier')
+    search_fields = ('kode_supplier', 'nama_supplier')
+    ordering = ('nama_supplier',)
 
 admin.site.site_header = "Dasbor Resepsionis USTP"
 admin.site.site_title = "Admin USTP"
