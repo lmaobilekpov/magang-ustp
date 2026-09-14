@@ -5,19 +5,17 @@ from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as D
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import DokumenMasuk, DokumenKeluar, Karyawan, Supplier
-import json
 
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
     list_display = ('tanggal_terima', 'kategori', 'pengirim', 'nama_penerima', 'status', 'foto_thumbnail')
-    search_fields = ('pengirim', 'nama_penerima', 'nik_penerima')
+    search_fields = ('pengirim', 'nama_penerima')
     fields = (
         'kategori',
         'jenis_pengirim',
         'pt_pengirim',
         'pengirim',
         'nama_penerima',
-        'nik_penerima',
         'foto_barang',
         'status',
         'dob_pengambil',
@@ -82,30 +80,11 @@ class DokumenMasukAdmin(admin.ModelAdmin):
         if db_field.name == 'nama_penerima':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
-                (k.nama_lengkap, f"{k.nama_lengkap} — {k.nik[-4:]}") for k in karyawan_list
+                (k.nama_lengkap, f"{k.nama_lengkap} — {k.kode_karyawan}") for k in karyawan_list
             ]
-            mapping = {f"{k.nama_lengkap} — {k.nik[-4:]}": k.nik for k in karyawan_list}
-
-            widget = forms.Select(attrs={
-                'style': 'width: 300px;',
-                'data-map': json.dumps(mapping, ensure_ascii=False),
-                'onchange': "document.getElementById('id_nik_penerima').value = JSON.parse(this.dataset.map)[(this.options[this.selectedIndex] || {}).text] || '';"
-            })
-            return forms.ChoiceField(choices=choices, required=True, widget=widget)
-
-        if db_field.name == 'nik_penerima':
-            karyawan_list = list(Karyawan.objects.all())
-            choices = [('', '---------')] + [
-                (k.nik, k.nik) for k in karyawan_list
-            ]
-            mapping = {k.nik: k.nama_lengkap for k in karyawan_list}
-
-            widget = forms.Select(attrs={
-                'style': 'width: 300px;',
-                'data-map': json.dumps(mapping, ensure_ascii=False),
-                'onchange': "document.getElementById('id_nama_penerima').value = JSON.parse(this.dataset.map)[this.value] || '';"
-            })
-            return forms.ChoiceField(choices=choices, required=True, widget=widget)
+            return forms.ChoiceField(choices=choices, required=True, widget=forms.Select(attrs={
+                'style': 'width: 350px;'
+            }))
 
         if db_field.name == 'pengirim':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'id': 'id_pengirim'})
@@ -130,7 +109,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
 @admin.register(DokumenKeluar)
 class DokumenKeluarAdmin(admin.ModelAdmin):
     list_display = ('nomor_resi_internal', 'tanggal_terima', 'nama_pengirim', 'status', 'foto_thumbnail')
-    search_fields = ('nomor_resi_internal', 'nama_pengirim', 'nik_pengirim')
+    search_fields = ('nomor_resi_internal', 'nama_pengirim')
     list_filter = ('status', 'tanggal_terima')
     ordering = ('-id',)
     readonly_fields = ('nomor_resi_internal',)
@@ -139,30 +118,11 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
         if db_field.name == 'nama_pengirim':
             karyawan_list = list(Karyawan.objects.all())
             choices = [('', '---------')] + [
-                (k.nama_lengkap, f"{k.nama_lengkap} — {k.nik[-4:]}") for k in karyawan_list
+                (k.nama_lengkap, f"{k.nama_lengkap} — {k.kode_karyawan}") for k in karyawan_list
             ]
-            mapping = {f"{k.nama_lengkap} — {k.nik[-4:]}": k.nik for k in karyawan_list}
-
-            widget = forms.Select(attrs={
-                'style': 'width: 300px;',
-                'data-map': json.dumps(mapping, ensure_ascii=False),
-                'onchange': "document.getElementById('id_nik_pengirim').value = JSON.parse(this.dataset.map)[(this.options[this.selectedIndex] || {}).text] || '';"
-            })
-            return forms.ChoiceField(choices=choices, required=True, widget=widget)
-
-        if db_field.name == 'nik_pengirim':
-            karyawan_list = list(Karyawan.objects.all())
-            choices = [('', '---------')] + [
-                (k.nik, k.nik) for k in karyawan_list
-            ]
-            mapping = {k.nik: k.nama_lengkap for k in karyawan_list}
-
-            widget = forms.Select(attrs={
-                'style': 'width: 300px;',
-                'data-map': json.dumps(mapping, ensure_ascii=False),
-                'onchange': "document.getElementById('id_nama_pengirim').value = JSON.parse(this.dataset.map)[this.value] || '';"
-            })
-            return forms.ChoiceField(choices=choices, required=True, widget=widget)
+            return forms.ChoiceField(choices=choices, required=True, widget=forms.Select(attrs={
+                'style': 'width: 350px;'
+            }))
 
         if db_field.name == 'resi_jne':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off'})
@@ -177,8 +137,8 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
 
 @admin.register(Karyawan)
 class KaryawanAdmin(admin.ModelAdmin):
-    list_display = ('nik', 'nama_lengkap', 'tanggal_lahir')
-    search_fields = ('nik', 'nama_lengkap')
+    list_display = ('kode_karyawan', 'nama_lengkap', 'jabatan', 'tanggal_lahir')
+    search_fields = ('kode_karyawan', 'nama_lengkap', 'jabatan')
     ordering = ('nama_lengkap',)
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
