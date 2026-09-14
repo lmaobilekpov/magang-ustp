@@ -59,13 +59,11 @@ function toggleRecentActions() {
     var extraActions = document.getElementsByClassName("extra-action");
     
     if (icon.innerHTML === "▼") {
-        // Mode Expand: tampilkan sisa action
         for (var i = 0; i < extraActions.length; i++) {
             extraActions[i].style.display = "";
         }
         icon.innerHTML = "▲";
     } else {
-        // Mode Minimize: sembunyikan yang > 3
         for (var i = 0; i < extraActions.length; i++) {
             extraActions[i].style.display = "none";
         }
