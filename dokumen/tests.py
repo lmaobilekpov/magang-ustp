@@ -65,7 +65,50 @@ class DokumenMasukTest(TestCase):
             dokumen.tanggal_diambil.timestamp(),
             waktu_awal.timestamp(),
             places=3
-)
+        )
+
+    def test_nik_penerima_tidak_terdaftar_ditolak(self):
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima='Budi Santoso',
+            nik_penerima='99999999',
+            status='Sudah Diambil',
+            dob_pengambil=self.karyawan.tanggal_lahir,
+        )
+
+        with self.assertRaises(Exception):
+            dokumen.full_clean()
+
+    def test_nama_penerima_tidak_sesuai_nik_ditolak(self):
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima='Siti Aminah',
+            nik_penerima=self.karyawan.nik,
+            status='Sudah Diambil',
+            dob_pengambil=self.karyawan.tanggal_lahir,
+        )
+
+        with self.assertRaises(Exception):
+            dokumen.full_clean()
+
+    def test_status_di_resepsionis_tidak_memiliki_waktu_pengambilan(self):
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima=self.karyawan.nama_lengkap,
+            nik_penerima=self.karyawan.nik,
+            status='Di Resepsionis',
+        )
+
+        dokumen.full_clean()
+        dokumen.save()
+
+        self.assertIsNone(dokumen.tanggal_diambil)
 
 
 class DokumenKeluarTest(TestCase):
