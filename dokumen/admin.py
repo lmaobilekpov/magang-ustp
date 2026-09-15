@@ -139,6 +139,7 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
 class KaryawanAdmin(admin.ModelAdmin):
     list_display = ('kode_karyawan', 'nama_lengkap', 'jabatan', 'tanggal_lahir')
     search_fields = ('kode_karyawan', 'nama_lengkap', 'jabatan')
+    list_filter = ('jabatan',)
     ordering = ('nama_lengkap',)
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
