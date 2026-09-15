@@ -4,6 +4,7 @@ from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.contrib.auth.models import Group
 from .models import DokumenMasuk, DokumenKeluar, Karyawan, Supplier
 
 @admin.register(DokumenMasuk)
@@ -154,3 +155,6 @@ class SupplierAdmin(admin.ModelAdmin):
 admin.site.site_header = "Dasbor Resepsionis USTP"
 admin.site.site_title = "Admin USTP"
 admin.site.index_title = "Manajemen Dokumen Internal"
+
+# Semua resepsionis menggunakan hak akses yang sama, jadi Groups tidak perlu ditampilkan.
+admin.site.unregister(Group)
