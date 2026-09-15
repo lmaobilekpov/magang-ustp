@@ -153,6 +153,20 @@ class DokumenKeluar(models.Model):
     def clean(self):
         super().clean()
 
+        if not self.nama_pengirim or not self.nama_pengirim.strip():
+            raise ValidationError({
+                'nama_pengirim': 'Nama pengirim wajib diisi.'
+            })
+
+        karyawan_cocok = Karyawan.objects.filter(
+            nama_lengkap__iexact=self.nama_pengirim.strip()
+        ).first()
+
+        if not karyawan_cocok:
+            raise ValidationError({
+                'nama_pengirim': 'Nama pengirim harus sesuai dengan data karyawan.'
+            })
+
         if self.status == 'Sudah Diserahkan ke JNE' and not self.resi_jne:
             raise ValidationError({
                 'resi_jne': 'URL Resi JNE wajib diisi jika status sudah diserahkan ke JNE.'
