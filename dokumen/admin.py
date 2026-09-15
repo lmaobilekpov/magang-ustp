@@ -1,16 +1,34 @@
 from django.contrib import admin
+from django.contrib.auth.models import Group
 from django import forms
 from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from django.contrib.auth.models import Group
 from .models import DokumenMasuk, DokumenKeluar, Karyawan, Supplier
+
+
+class KaryawanDatalistWidget(forms.TextInput):
+    def __init__(self, karyawan_list, attrs=None):
+        super().__init__(attrs)
+        self.karyawan_list = karyawan_list
+
+    def render(self, name, value, attrs=None, renderer=None):
+        input_html = super().render(name, value, attrs, renderer)
+        datalist_id = f"{attrs.get('id')}-list"
+        options = ''.join(
+            f'<option value="{k.nama_lengkap}">{k.kode_karyawan} — {k.jabatan}</option>'
+            for k in self.karyawan_list
+        )
+        datalist = f'<datalist id="{datalist_id}">{options}</datalist>'
+        return mark_safe(input_html + datalist)
+
 
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
     list_display = ('tanggal_terima', 'kategori', 'pengirim', 'nama_penerima', 'status', 'foto_thumbnail')
     search_fields = ('pengirim', 'nama_penerima')
+    autocomplete_fields = ('pt_pengirim',)
     fields = (
         'kategori',
         'jenis_pengirim',
@@ -56,7 +74,10 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                             pengirimInput.readOnly = true;
 
                             if (ptInput && ptInput.value) {
-                                pengirimInput.value = ptInput.options[ptInput.selectedIndex].text;
+                                const selectedOption = ptInput.options && ptInput.selectedIndex >= 0
+                                    ? ptInput.options[ptInput.selectedIndex]
+                                    : null;
+                                pengirimInput.value = selectedOption ? selectedOption.text : '';
                             } else {
                                 pengirimInput.value = '';
                             }
@@ -65,7 +86,10 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                             if (pengirimWrapper) pengirimWrapper.style.display = '';
                             pengirimInput.readOnly = false;
                             pengirimInput.value = '';
-                            if (ptInput) ptInput.value = '';
+                            if (ptInput) {
+                                ptInput.value = '';
+                                if (window.jQuery) window.jQuery(ptInput).trigger('change');
+                            }
                         }
                     }
 
@@ -74,18 +98,24 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                     updatePengirim();
                 });
                 </script>
-                Pilih <b>PT / Instansi</b> untuk memilih dari Data Supplier, atau <b>Non-PT / Perseorangan</b> untuk mengetik nama pengirim manual.
+                Pilih <b>PT / Instansi</b> untuk memilih dari Data Supplier dengan pencarian, atau <b>Non-PT / Perseorangan</b> untuk mengetik nama pengirim manual.
             """)
             return formfield
 
         if db_field.name == 'nama_penerima':
             karyawan_list = list(Karyawan.objects.all())
-            choices = [('', '---------')] + [
-                (k.nama_lengkap, f"{k.nama_lengkap} — {k.kode_karyawan}") for k in karyawan_list
-            ]
-            return forms.ChoiceField(choices=choices, required=True, widget=forms.Select(attrs={
-                'style': 'width: 350px;'
-            }))
+            return forms.CharField(
+                label=db_field.verbose_name,
+                required=True,
+                widget=KaryawanDatalistWidget(
+                    karyawan_list,
+                    attrs={
+                        'style': 'width: 350px;',
+                        'list': 'id_nama_penerima-list',
+                        'autocomplete': 'off',
+                    }
+                )
+            )
 
         if db_field.name == 'pengirim':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'id': 'id_pengirim'})
@@ -107,6 +137,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
+
 @admin.register(DokumenKeluar)
 class DokumenKeluarAdmin(admin.ModelAdmin):
     list_display = ('nomor_resi_internal', 'tanggal_terima', 'nama_pengirim', 'status', 'foto_thumbnail')
@@ -118,12 +149,18 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'nama_pengirim':
             karyawan_list = list(Karyawan.objects.all())
-            choices = [('', '---------')] + [
-                (k.nama_lengkap, f"{k.nama_lengkap} — {k.kode_karyawan}") for k in karyawan_list
-            ]
-            return forms.ChoiceField(choices=choices, required=True, widget=forms.Select(attrs={
-                'style': 'width: 350px;'
-            }))
+            return forms.CharField(
+                label=db_field.verbose_name,
+                required=True,
+                widget=KaryawanDatalistWidget(
+                    karyawan_list,
+                    attrs={
+                        'style': 'width: 350px;',
+                        'list': 'id_nama_pengirim-list',
+                        'autocomplete': 'off',
+                    }
+                )
+            )
 
         if db_field.name == 'resi_jne':
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off'})
@@ -136,6 +173,7 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
         return "-"
     foto_thumbnail.short_description = "Foto"
 
+
 @admin.register(Karyawan)
 class KaryawanAdmin(admin.ModelAdmin):
     list_display = ('kode_karyawan', 'nama_lengkap', 'jabatan', 'tanggal_lahir')
@@ -146,11 +184,13 @@ class KaryawanAdmin(admin.ModelAdmin):
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
     }
 
+
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
     list_display = ('kode_supplier', 'nama_supplier')
     search_fields = ('kode_supplier', 'nama_supplier')
     ordering = ('nama_supplier',)
+
 
 admin.site.site_header = "Dasbor Resepsionis USTP"
 admin.site.site_title = "Admin USTP"
