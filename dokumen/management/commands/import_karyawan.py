@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -73,6 +74,7 @@ class Command(BaseCommand):
         imported_count = 0
         updated_count = 0
         skipped_count = 0
+        kode_di_excel = set()
 
         with transaction.atomic():
             for row_number, row in enumerate(rows, start=2):
@@ -84,6 +86,9 @@ class Command(BaseCommand):
                 code = str(raw_code).strip() if raw_code is not None else ""
                 name = str(raw_name).strip() if raw_name is not None else ""
                 position = str(raw_position).strip() if raw_position is not None else ""
+
+                if code:
+                    kode_di_excel.add(code)
 
                 if not code or not name or not position or raw_dob is None:
                     skipped_count += 1
@@ -98,7 +103,6 @@ class Command(BaseCommand):
                     dob = raw_dob.date()
                 else:
                     try:
-                        from datetime import datetime
                         dob = datetime.strptime(str(raw_dob).strip(), "%d-%m-%Y").date()
                     except (TypeError, ValueError):
                         skipped_count += 1
@@ -115,6 +119,7 @@ class Command(BaseCommand):
                         "nama_lengkap": name,
                         "jabatan": position,
                         "tanggal_lahir": dob,
+                        "aktif": True,
                     },
                 )
 
@@ -123,10 +128,18 @@ class Command(BaseCommand):
                 else:
                     updated_count += 1
 
+            if kode_di_excel:
+                deactivated_count, _ = Karyawan.objects.exclude(
+                    kode_karyawan__in=kode_di_excel
+                ).update(aktif=False), None
+            else:
+                deactivated_count = 0
+
         workbook.close()
 
         self.stdout.write(self.style.SUCCESS("Import karyawan selesai."))
         self.stdout.write(f"Data baru: {imported_count}")
         self.stdout.write(f"Data diperbarui: {updated_count}")
+        self.stdout.write(f"Karyawan dinonaktifkan: {deactivated_count}")
         self.stdout.write(f"Baris dilewati: {skipped_count}")
         self.stdout.write(f"Total karyawan di database: {Karyawan.objects.count()}")
