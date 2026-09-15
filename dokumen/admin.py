@@ -9,7 +9,6 @@ from django.utils import timezone
 from .models import DokumenMasuk, DokumenKeluar, Karyawan, Supplier
 
 
-
 class KaryawanDatalistWidget(forms.TextInput):
     def __init__(self, karyawan_list, attrs=None):
         super().__init__(attrs)
@@ -24,6 +23,7 @@ class KaryawanDatalistWidget(forms.TextInput):
         )
         datalist = f'<datalist id="{datalist_id}">{options}</datalist>'
         return mark_safe(input_html + datalist)
+
 
 class TerlambatDiambilFilter(admin.SimpleListFilter):
     title = 'Status Pengambilan'
@@ -52,17 +52,18 @@ class TerlambatDiambilFilter(admin.SimpleListFilter):
 
         return queryset
 
+
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
     list_display = (
-    'tanggal_terima',
-    'kategori',
-    'pengirim',
-    'nama_penerima',
-    'status',
-    'indikator_pengambilan',
-    'foto_thumbnail',
-)
+        'tanggal_terima',
+        'kategori',
+        'pengirim',
+        'nama_penerima',
+        'status',
+        'indikator_pengambilan',
+        'foto_thumbnail',
+    )
     search_fields = ('pengirim', 'nama_penerima')
     autocomplete_fields = ('pt_pengirim',)
     fields = (
@@ -78,12 +79,13 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('tanggal_diambil',)
     list_filter = (
-    'status',
-    'kategori',
-    'tanggal_terima',
-    TerlambatDiambilFilter,
-)
+        'status',
+        'kategori',
+        'tanggal_terima',
+        TerlambatDiambilFilter,
+    )
     ordering = ('-id',)
+
     @admin.display(description='Indikator')
     def indikator_pengambilan(self, obj):
         if obj.terlambat_diambil:
@@ -95,6 +97,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
                 '<span style="color: #16a34a;">✓ Selesai</span>'
             )
         return '-'
+
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
     }
@@ -155,7 +158,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             return formfield
 
         if db_field.name == 'nama_penerima':
-            karyawan_list = list(Karyawan.objects.all())
+            karyawan_list = list(Karyawan.objects.filter(aktif=True).order_by('nama_lengkap'))
             return forms.CharField(
                 label=db_field.verbose_name,
                 required=True,
@@ -200,7 +203,7 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'nama_pengirim':
-            karyawan_list = list(Karyawan.objects.all())
+            karyawan_list = list(Karyawan.objects.filter(aktif=True).order_by('nama_lengkap'))
             return forms.CharField(
                 label=db_field.verbose_name,
                 required=True,
@@ -228,9 +231,9 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
 
 @admin.register(Karyawan)
 class KaryawanAdmin(admin.ModelAdmin):
-    list_display = ('kode_karyawan', 'nama_lengkap', 'jabatan', 'tanggal_lahir')
+    list_display = ('kode_karyawan', 'nama_lengkap', 'jabatan', 'tanggal_lahir', 'aktif')
     search_fields = ('kode_karyawan', 'nama_lengkap', 'jabatan')
-    list_filter = ('jabatan',)
+    list_filter = ('aktif', 'jabatan')
     ordering = ('nama_lengkap',)
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
