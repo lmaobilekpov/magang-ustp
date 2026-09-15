@@ -88,6 +88,14 @@ class DokumenMasuk(models.Model):
     class Meta:
         verbose_name_plural = 'Dokumen Masuk'
 
+    @property
+    def terlambat_diambil(self):
+        if self.status != 'Di Resepsionis' or not self.tanggal_terima:
+            return False
+
+        batas_pengambilan = timezone.localdate() - timezone.timedelta(days=3)
+        return self.tanggal_terima < batas_pengambilan
+
     def clean(self):
         super().clean()
 
