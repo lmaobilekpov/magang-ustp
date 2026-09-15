@@ -91,18 +91,27 @@ class DokumenMasuk(models.Model):
     def clean(self):
         super().clean()
 
+        if not self.nama_penerima or not self.nama_penerima.strip():
+            raise ValidationError({
+                'nama_penerima': 'Nama penerima wajib diisi.'
+            })
+
+        karyawan_cocok = Karyawan.objects.filter(
+            nama_lengkap__iexact=self.nama_penerima.strip()
+        ).first()
+
+        if not karyawan_cocok:
+            raise ValidationError({
+                'nama_penerima': 'Nama penerima harus sesuai dengan data karyawan.'
+            })
+
         if self.status == 'Sudah Diambil':
             if not self.dob_pengambil:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
                 })
 
-            karyawan_cocok = Karyawan.objects.filter(
-                nama_lengkap__iexact=self.nama_penerima.strip(),
-                tanggal_lahir=self.dob_pengambil,
-            ).first()
-
-            if not karyawan_cocok:
+            if karyawan_cocok.tanggal_lahir != self.dob_pengambil:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal lahir tidak sesuai dengan data karyawan penerima.'
                 })
