@@ -15,6 +15,7 @@ class Karyawan(models.Model):
     verbose_name="Jabatan"
     )
     tanggal_lahir = models.DateField(verbose_name="Tanggal Lahir")
+    aktif = models.BooleanField(default=True, verbose_name="Aktif")
 
     class Meta:
         verbose_name = 'Karyawan'
@@ -104,13 +105,21 @@ class DokumenMasuk(models.Model):
                 'nama_penerima': 'Nama penerima wajib diisi.'
             })
 
+        nama_penerima = self.nama_penerima.strip()
         karyawan_cocok = Karyawan.objects.filter(
-            nama_lengkap__iexact=self.nama_penerima.strip()
+            nama_lengkap__iexact=nama_penerima
         ).first()
 
-        if not karyawan_cocok:
+        if self.pk:
+            data_lama = DokumenMasuk.objects.get(pk=self.pk)
+            nama_lama = (data_lama.nama_penerima or '').strip()
+            nama_tidak_diubah = nama_lama.casefold() == nama_penerima.casefold()
+        else:
+            nama_tidak_diubah = False
+
+        if not karyawan_cocok or (not karyawan_cocok.aktif and not nama_tidak_diubah):
             raise ValidationError({
-                'nama_penerima': 'Nama penerima harus sesuai dengan data karyawan.'
+                'nama_penerima': 'Nama penerima harus sesuai dengan data karyawan yang masih aktif.'
             })
 
         if self.status == 'Sudah Diambil':
@@ -167,13 +176,21 @@ class DokumenKeluar(models.Model):
                 'nama_pengirim': 'Nama pengirim wajib diisi.'
             })
 
+        nama_pengirim = self.nama_pengirim.strip()
         karyawan_cocok = Karyawan.objects.filter(
-            nama_lengkap__iexact=self.nama_pengirim.strip()
+            nama_lengkap__iexact=nama_pengirim
         ).first()
 
-        if not karyawan_cocok:
+        if self.pk:
+            data_lama = DokumenKeluar.objects.get(pk=self.pk)
+            nama_lama = (data_lama.nama_pengirim or '').strip()
+            nama_tidak_diubah = nama_lama.casefold() == nama_pengirim.casefold()
+        else:
+            nama_tidak_diubah = False
+
+        if not karyawan_cocok or (not karyawan_cocok.aktif and not nama_tidak_diubah):
             raise ValidationError({
-                'nama_pengirim': 'Nama pengirim harus sesuai dengan data karyawan.'
+                'nama_pengirim': 'Nama pengirim harus sesuai dengan data karyawan yang masih aktif.'
             })
 
         if self.status == 'Sudah Diserahkan ke JNE' and not self.resi_jne:
