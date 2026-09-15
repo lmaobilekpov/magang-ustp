@@ -5,7 +5,9 @@ from django.db import models
 from django.forms import DateInput, TextInput, DateTimeInput, DateTimeField as DateTimeFormField
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.utils import timezone
 from .models import DokumenMasuk, DokumenKeluar, Karyawan, Supplier
+
 
 
 class KaryawanDatalistWidget(forms.TextInput):
@@ -23,10 +25,44 @@ class KaryawanDatalistWidget(forms.TextInput):
         datalist = f'<datalist id="{datalist_id}">{options}</datalist>'
         return mark_safe(input_html + datalist)
 
+class TerlambatDiambilFilter(admin.SimpleListFilter):
+    title = 'Status Pengambilan'
+    parameter_name = 'terlambat'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('ya', 'Belum diambil > 3 hari'),
+            ('tidak', 'Belum melewati 3 hari'),
+        )
+
+    def queryset(self, request, queryset):
+        batas_pengambilan = timezone.localdate() - timezone.timedelta(days=3)
+
+        if self.value() == 'ya':
+            return queryset.filter(
+                status='Di Resepsionis',
+                tanggal_terima__lt=batas_pengambilan,
+            )
+
+        if self.value() == 'tidak':
+            return queryset.exclude(
+                status='Di Resepsionis',
+                tanggal_terima__lt=batas_pengambilan,
+            )
+
+        return queryset
 
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
-    list_display = ('tanggal_terima', 'kategori', 'pengirim', 'nama_penerima', 'status', 'foto_thumbnail')
+    list_display = (
+    'tanggal_terima',
+    'kategori',
+    'pengirim',
+    'nama_penerima',
+    'status',
+    'indikator_pengambilan',
+    'foto_thumbnail',
+)
     search_fields = ('pengirim', 'nama_penerima')
     autocomplete_fields = ('pt_pengirim',)
     fields = (
@@ -41,8 +77,24 @@ class DokumenMasukAdmin(admin.ModelAdmin):
         'tanggal_diambil',
     )
     readonly_fields = ('tanggal_diambil',)
-    list_filter = ('status', 'kategori', 'tanggal_terima')
+    list_filter = (
+    'status',
+    'kategori',
+    'tanggal_terima',
+    TerlambatDiambilFilter,
+)
     ordering = ('-id',)
+    @admin.display(description='Indikator')
+    def indikator_pengambilan(self, obj):
+        if obj.terlambat_diambil:
+            return format_html(
+                '<strong style="color: #dc2626;">⚠ Terlambat</strong>'
+            )
+        if obj.status == 'Sudah Diambil':
+            return format_html(
+                '<span style="color: #16a34a;">✓ Selesai</span>'
+            )
+        return '-'
     formfield_overrides = {
         models.DateField: {'widget': DateInput(attrs={'type': 'date'})},
     }
