@@ -19,8 +19,8 @@ Repository: `lmaobilekpov/magang-ustp`
 
 ## Master data
 ### Karyawan
-The source Excel contains 154 employee records after excluding one header row and one blank row.
-Fields currently include NIK, full name, and date of birth.
+The source Excel contains employee records imported into the local database.
+Fields currently include employee code, full name, position, and date of birth.
 
 Requirements:
 - Resigned employees should automatically become inactive based on a date/mechanism; exact implementation is still open.
@@ -28,13 +28,12 @@ Requirements:
 - Store who last updated a record if needed, but a full audit log is not required.
 
 ### Supplier
-The source Excel contains 1,067 supplier records after excluding one header row and one blank row.
-Source columns include `SUPPLIERCODE`, `SUPPLIERNAME`, and `ADDRESS`.
+The source Excel contains supplier records imported into the local database.
+Source columns include supplier code and supplier name; address is not needed for transactions.
 
 Requirements:
 - Store/use both supplier code and supplier name.
 - Supplier code is the stable identifier when names are duplicated.
-- Address is not needed for transactions.
 - Supplier data comes from an external/main database/API.
 - The application must keep a local copy so it can continue operating when the main database/API is down.
 - New supplier data should originate from the main API/database.
@@ -49,9 +48,10 @@ Sender:
 - Non-PT/Perseorangan -> manually enter sender name.
 
 Recipient:
+- Must match an employee registered in Data Karyawan.
 - Normally one specific employee.
 - If needed, use the person who normally handles incoming packages for that division.
-- Another person may physically pick up a package if they know the owner's NIK and date of birth; the system does not need a separate representative entity.
+- Another person may physically pick up a package if they know the owner's date of birth; the system does not need a separate representative entity.
 
 Pickup:
 - Pickup time is automatically recorded when status changes to `Sudah Diambil`.
@@ -64,6 +64,9 @@ Statuses:
 - `Menunggu Kurir`
 - `Sudah Diserahkan ke JNE`
 - `Paket Kembali`
+
+Sender:
+- Must match an employee registered in Data Karyawan.
 
 Internal number:
 - Auto-generated as `OUT-YYYYMMDD-001`.
@@ -81,8 +84,8 @@ Returned documents:
 - If it will be sent again, create a new outgoing transaction/process instead of overwriting the old transaction.
 
 ## Portal
-- Employee tracking portal uses NIK + date of birth.
-- Do not change this verification method unless the requirement changes.
+- Employee tracking portal currently uses date of birth verification.
+- If a date of birth matches more than one employee, verification is rejected and the user is asked to contact the receptionist.
 
 ## Photos and scope
 - `foto_barang` and `foto_dokumen` remain optional unless office SOP requires them.
@@ -91,8 +94,7 @@ Returned documents:
 - No phone number unless required by the actual process.
 
 ## Testing status
-`dokumen/tests.py` currently contains 15 automated tests covering incoming validation, pickup timestamps, outgoing validation, JNE URL validation, internal number generation/sequence, and portal NIK+DOB verification.
-Latest known result: all 15 tests pass.
+`dokumen/tests.py` contains automated tests covering incoming validation, pickup timestamps, outgoing validation, JNE URL validation, internal number generation/sequence, employee-name validation, and portal date-of-birth verification.
 
 ## Open decisions
 - Exact inactive mechanism/date for resigned employees.
