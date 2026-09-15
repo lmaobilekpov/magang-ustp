@@ -93,6 +93,18 @@ class DokumenMasukTest(TestCase):
 
         self.assertIsNone(dokumen.tanggal_diambil)
 
+    def test_nama_penerima_tidak_terdaftar_ditolak(self):
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima='Nama Ngawur',
+            status='Di Resepsionis',
+        )
+
+        with self.assertRaises(Exception):
+            dokumen.full_clean()
+
 
 class DokumenKeluarTest(TestCase):
     def setUp(self):
@@ -158,6 +170,24 @@ class DokumenKeluarTest(TestCase):
 
         today = timezone.now().strftime('%Y%m%d')
         self.assertEqual(dokumen_baru.nomor_resi_internal, f'OUT-{today}-001')
+
+    def test_nama_pengirim_terdaftar_diterima(self):
+        dokumen = DokumenKeluar(
+            nama_pengirim=self.karyawan.nama_lengkap,
+            deskripsi='Dokumen untuk dikirim',
+        )
+
+        dokumen.full_clean()
+        self.assertEqual(dokumen.nama_pengirim, self.karyawan.nama_lengkap)
+
+    def test_nama_pengirim_tidak_terdaftar_ditolak(self):
+        dokumen = DokumenKeluar(
+            nama_pengirim='Nama Ngawur',
+            deskripsi='Dokumen untuk dikirim',
+        )
+
+        with self.assertRaises(Exception):
+            dokumen.full_clean()
 
 
 class PortalKaryawanTest(TestCase):
