@@ -5,14 +5,14 @@ from django.core.exceptions import ValidationError
 
 class Karyawan(models.Model):
     kode_karyawan = models.CharField(
-    max_length=50,
-    unique=True,
-    verbose_name="Kode Karyawan"
+        max_length=50,
+        unique=True,
+        verbose_name="Kode Karyawan"
     )
     nama_lengkap = models.CharField(max_length=255, verbose_name="Nama Lengkap")
     jabatan = models.CharField(
-    max_length=255,
-    verbose_name="Jabatan"
+        max_length=255,
+        verbose_name="Jabatan"
     )
     tanggal_lahir = models.DateField(verbose_name="Tanggal Lahir")
     aktif = models.BooleanField(default=True, verbose_name="Aktif")
@@ -256,3 +256,47 @@ class DokumenKeluar(models.Model):
 
     def __str__(self):
         return f"{self.nomor_resi_internal} - {self.nama_pengirim}"
+
+
+class RiwayatStatusDokumenMasuk(models.Model):
+    dokumen = models.ForeignKey(
+        DokumenMasuk,
+        on_delete=models.CASCADE,
+        related_name='riwayat_status',
+    )
+    status = models.CharField(max_length=50, choices=DokumenMasuk.STATUS_CHOICES)
+    diubah_pada = models.DateTimeField(auto_now_add=True)
+    diubah_oleh = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='riwayat_dokumen_masuk',
+    )
+
+    class Meta:
+        verbose_name = 'Riwayat Status Dokumen Masuk'
+        verbose_name_plural = 'Riwayat Status Dokumen Masuk'
+        ordering = ['-diubah_pada']
+
+
+class RiwayatStatusDokumenKeluar(models.Model):
+    dokumen = models.ForeignKey(
+        DokumenKeluar,
+        on_delete=models.CASCADE,
+        related_name='riwayat_status',
+    )
+    status = models.CharField(max_length=50, choices=DokumenKeluar.STATUS_CHOICES)
+    diubah_pada = models.DateTimeField(auto_now_add=True)
+    diubah_oleh = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='riwayat_dokumen_keluar',
+    )
+
+    class Meta:
+        verbose_name = 'Riwayat Status Dokumen Keluar'
+        verbose_name_plural = 'Riwayat Status Dokumen Keluar'
+        ordering = ['-diubah_pada']
