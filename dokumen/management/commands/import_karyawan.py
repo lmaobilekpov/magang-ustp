@@ -129,9 +129,9 @@ class Command(BaseCommand):
                     updated_count += 1
 
             if kode_di_excel:
-                deactivated_count, _ = Karyawan.objects.exclude(
+                deactivated_count = Karyawan.objects.exclude(
                     kode_karyawan__in=kode_di_excel
-                ).update(aktif=False), None
+                ).update(aktif=False)
             else:
                 deactivated_count = 0
 
