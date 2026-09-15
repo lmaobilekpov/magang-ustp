@@ -140,6 +140,7 @@ class DokumenKeluar(models.Model):
     STATUS_CHOICES = [
         ('Menunggu Kurir', 'Menunggu Kurir'),
         ('Sudah Diserahkan ke JNE', 'Sudah Diserahkan ke JNE'),
+        ('Paket Kembali', 'Paket Kembali'),
     ]
 
     nomor_resi_internal = models.CharField(max_length=20, unique=True, blank=True)
@@ -171,6 +172,23 @@ class DokumenKeluar(models.Model):
             raise ValidationError({
                 'resi_jne': 'URL Resi JNE wajib diisi jika status sudah diserahkan ke JNE.'
             })
+
+        if self.status == 'Paket Kembali':
+            if not self.pk:
+                raise ValidationError({
+                    'status': 'Paket Kembali hanya dapat digunakan untuk transaksi yang sudah diserahkan ke JNE.'
+                })
+
+            data_lama = DokumenKeluar.objects.get(pk=self.pk)
+            if data_lama.status not in ('Sudah Diserahkan ke JNE', 'Paket Kembali'):
+                raise ValidationError({
+                    'status': 'Dokumen harus berstatus Sudah Diserahkan ke JNE sebelum ditandai Paket Kembali.'
+                })
+
+            if not self.resi_jne:
+                raise ValidationError({
+                    'resi_jne': 'URL Resi JNE wajib diisi untuk menandai paket sebagai Paket Kembali.'
+                })
 
     class Meta:
         verbose_name_plural = 'Dokumen Keluar'
