@@ -1,5 +1,6 @@
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -105,6 +106,36 @@ class DokumenMasukTest(TestCase):
         with self.assertRaises(Exception):
             dokumen.full_clean()
 
+    def test_nama_penerima_karyawan_nonaktif_ditolak(self):
+        self.karyawan.aktif = False
+        self.karyawan.save(update_fields=['aktif'])
+
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima=self.karyawan.nama_lengkap,
+            status='Di Resepsionis',
+        )
+
+        with self.assertRaises(ValidationError):
+            dokumen.full_clean()
+
+    def test_dokumen_lama_tetap_bisa_diedit_setelah_karyawan_nonaktif(self):
+        dokumen = DokumenMasuk.objects.create(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima=self.karyawan.nama_lengkap,
+            status='Di Resepsionis',
+        )
+
+        self.karyawan.aktif = False
+        self.karyawan.save(update_fields=['aktif'])
+
+        dokumen.pengirim = 'Andi diperbarui'
+        dokumen.full_clean()
+
 
 class DokumenKeluarTest(TestCase):
     def setUp(self):
@@ -187,6 +218,18 @@ class DokumenKeluarTest(TestCase):
         )
 
         with self.assertRaises(Exception):
+            dokumen.full_clean()
+
+    def test_nama_pengirim_karyawan_nonaktif_ditolak(self):
+        self.karyawan.aktif = False
+        self.karyawan.save(update_fields=['aktif'])
+
+        dokumen = DokumenKeluar(
+            nama_pengirim=self.karyawan.nama_lengkap,
+            deskripsi='Dokumen untuk dikirim',
+        )
+
+        with self.assertRaises(ValidationError):
             dokumen.full_clean()
 
 
