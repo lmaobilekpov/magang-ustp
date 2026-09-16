@@ -59,6 +59,18 @@ class RiwayatMasukInline(admin.TabularInline):
     verbose_name = 'Perubahan Status'
     verbose_name_plural = 'Riwayat Perubahan Status'
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return True
+
     @admin.display(description='Perubahan Status')
     def perubahan_status(self, obj):
         if not obj.status_sebelumnya:
@@ -104,6 +116,11 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     list_filter = ('status', 'kategori', 'tanggal_terima', TerlambatDiambilFilter)
     ordering = ('-id',)
     inlines = (RiwayatMasukInline,)
+
+    class Media:
+        css = {
+            'all': ('css/admin_custom.css',)
+        }
 
     @admin.display(description='Indikator')
     def indikator_pengambilan(self, obj):
@@ -164,6 +181,11 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
     ordering = ('-id',)
     readonly_fields = ('nomor_resi_internal',)
     inlines = (RiwayatKeluarInline,)
+
+    class Media:
+        css = {
+            'all': ('css/admin_custom.css',)
+        }
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'nama_pengirim':

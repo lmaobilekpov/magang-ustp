@@ -1,0 +1,4 @@
+/* Sembunyikan elemen teks original (biasanya berasal dari __str__) di dalam baris TabularInline yang readonly agar tidak double */
+div.inline-group .tabular td.original p {
+    display: none;
+}
