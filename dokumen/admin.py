@@ -54,16 +54,32 @@ class RiwayatMasukInline(admin.TabularInline):
     model = RiwayatStatusDokumenMasuk
     extra = 0
     can_delete = False
-    readonly_fields = ('status', 'diubah_pada', 'diubah_oleh')
-    fields = ('status', 'diubah_pada', 'diubah_oleh')
+    readonly_fields = ('status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh', 'ringkasan_perubahan')
+    fields = ('ringkasan_perubahan', 'status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh')
+
+    @admin.display(description='Perubahan Status')
+    def ringkasan_perubahan(self, obj):
+        if not obj.pk:
+            return '-'
+        if obj.status_sebelumnya:
+            return format_html('<strong>{}</strong> → <strong>{}</strong>', obj.status_sebelumnya, obj.status)
+        return format_html('Status awal: <strong>{}</strong>', obj.status)
 
 
 class RiwayatKeluarInline(admin.TabularInline):
     model = RiwayatStatusDokumenKeluar
     extra = 0
     can_delete = False
-    readonly_fields = ('status', 'diubah_pada', 'diubah_oleh')
-    fields = ('status', 'diubah_pada', 'diubah_oleh')
+    readonly_fields = ('status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh', 'ringkasan_perubahan')
+    fields = ('ringkasan_perubahan', 'status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh')
+
+    @admin.display(description='Perubahan Status')
+    def ringkasan_perubahan(self, obj):
+        if not obj.pk:
+            return '-'
+        if obj.status_sebelumnya:
+            return format_html('<strong>{}</strong> → <strong>{}</strong>', obj.status_sebelumnya, obj.status)
+        return format_html('Status awal: <strong>{}</strong>', obj.status)
 
 
 @admin.register(DokumenMasuk)
@@ -120,7 +136,12 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             obj.pt_pengirim = None
         super().save_model(request, obj, form, change)
         if not change or old_status != obj.status:
-            RiwayatStatusDokumenMasuk.objects.create(dokumen=obj, status=obj.status, diubah_oleh=request.user)
+            RiwayatStatusDokumenMasuk.objects.create(
+                dokumen=obj,
+                status_sebelumnya=old_status,
+                status=obj.status,
+                diubah_oleh=request.user,
+            )
 
 
 @admin.register(DokumenKeluar)
@@ -152,7 +173,12 @@ class DokumenKeluarAdmin(admin.ModelAdmin):
             old_status = DokumenKeluar.objects.get(pk=obj.pk).status
         super().save_model(request, obj, form, change)
         if not change or old_status != obj.status:
-            RiwayatStatusDokumenKeluar.objects.create(dokumen=obj, status=obj.status, diubah_oleh=request.user)
+            RiwayatStatusDokumenKeluar.objects.create(
+                dokumen=obj,
+                status_sebelumnya=old_status,
+                status=obj.status,
+                diubah_oleh=request.user,
+            )
 
 
 @admin.register(Karyawan)
