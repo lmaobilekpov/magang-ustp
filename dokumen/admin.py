@@ -54,32 +54,32 @@ class RiwayatMasukInline(admin.TabularInline):
     model = RiwayatStatusDokumenMasuk
     extra = 0
     can_delete = False
-    readonly_fields = ('status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh', 'ringkasan_perubahan')
-    fields = ('ringkasan_perubahan', 'status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh')
+    readonly_fields = ('perubahan_status', 'diubah_pada', 'diubah_oleh')
+    fields = ('perubahan_status', 'diubah_pada', 'diubah_oleh')
+    verbose_name = 'Perubahan Status'
+    verbose_name_plural = 'Riwayat Perubahan Status'
 
     @admin.display(description='Perubahan Status')
-    def ringkasan_perubahan(self, obj):
-        if not obj.pk:
-            return '-'
-        if obj.status_sebelumnya:
-            return format_html('<strong>{}</strong> → <strong>{}</strong>', obj.status_sebelumnya, obj.status)
-        return format_html('Status awal: <strong>{}</strong>', obj.status)
+    def perubahan_status(self, obj):
+        if not obj.status_sebelumnya:
+            return format_html('<strong>Status awal:</strong> {}', obj.status)
+        return format_html('<strong>{}</strong> &nbsp;→&nbsp; <strong>{}</strong>', obj.status_sebelumnya, obj.status)
 
 
 class RiwayatKeluarInline(admin.TabularInline):
     model = RiwayatStatusDokumenKeluar
     extra = 0
     can_delete = False
-    readonly_fields = ('status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh', 'ringkasan_perubahan')
-    fields = ('ringkasan_perubahan', 'status_sebelumnya', 'status', 'diubah_pada', 'diubah_oleh')
+    readonly_fields = ('perubahan_status', 'diubah_pada', 'diubah_oleh')
+    fields = ('perubahan_status', 'diubah_pada', 'diubah_oleh')
+    verbose_name = 'Perubahan Status'
+    verbose_name_plural = 'Riwayat Perubahan Status'
 
     @admin.display(description='Perubahan Status')
-    def ringkasan_perubahan(self, obj):
-        if not obj.pk:
-            return '-'
-        if obj.status_sebelumnya:
-            return format_html('<strong>{}</strong> → <strong>{}</strong>', obj.status_sebelumnya, obj.status)
-        return format_html('Status awal: <strong>{}</strong>', obj.status)
+    def perubahan_status(self, obj):
+        if not obj.status_sebelumnya:
+            return format_html('<strong>Status awal:</strong> {}', obj.status)
+        return format_html('<strong>{}</strong> &nbsp;→&nbsp; <strong>{}</strong>', obj.status_sebelumnya, obj.status)
 
 
 @admin.register(DokumenMasuk)
