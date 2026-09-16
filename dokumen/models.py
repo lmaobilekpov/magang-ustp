@@ -264,6 +264,7 @@ class RiwayatStatusDokumenMasuk(models.Model):
         on_delete=models.CASCADE,
         related_name='riwayat_status',
     )
+    status_sebelumnya = models.CharField(max_length=50, blank=True, null=True, verbose_name='Status Sebelumnya')
     status = models.CharField(max_length=50, choices=DokumenMasuk.STATUS_CHOICES)
     diubah_pada = models.DateTimeField(auto_now_add=True)
     diubah_oleh = models.ForeignKey(
@@ -286,6 +287,7 @@ class RiwayatStatusDokumenKeluar(models.Model):
         on_delete=models.CASCADE,
         related_name='riwayat_status',
     )
+    status_sebelumnya = models.CharField(max_length=50, blank=True, null=True, verbose_name='Status Sebelumnya')
     status = models.CharField(max_length=50, choices=DokumenKeluar.STATUS_CHOICES)
     diubah_pada = models.DateTimeField(auto_now_add=True)
     diubah_oleh = models.ForeignKey(
