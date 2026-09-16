@@ -5,13 +5,34 @@
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}" {% csp_nonce_attr %}>
 <style>
-  .dashboard-summary { margin-bottom: 20px; }
-  .dashboard-summary h2 { margin: 0 0 12px; font-size: 17px; }
-  .summary-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+  /* Paksa area dashboard memakai lebar penuh, lalu buat 2 kolom sendiri. */
+  body.dashboard #content { width: auto !important; max-width: none !important; }
+  body.dashboard #content-main { width: 100% !important; max-width: none !important; float: none !important; margin: 0 !important; }
+
+  .ustp-dashboard-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .ustp-main-column { min-width: 0; }
+  .ustp-side-column { min-width: 0; }
+
+  .ustp-side-column .module { margin-bottom: 18px; }
+
+  .dashboard-summary h2 { margin: 0; }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px;
+    border-top: 1px solid var(--hairline-color);
+  }
   .summary-card {
     display: block;
-    width: 145px;
-    min-height: 88px;
+    min-width: 0;
+    min-height: 94px;
     padding: 12px;
     box-sizing: border-box;
     border: 1px solid var(--hairline-color);
@@ -21,97 +42,104 @@
     text-decoration: none;
   }
   .summary-card:hover { border-color: var(--link-fg); }
-  .summary-card .summary-label {
+  .summary-label {
     display: block;
-    min-height: 34px;
-    margin-bottom: 8px;
+    min-height: 36px;
+    margin-bottom: 7px;
     font-size: 12px;
     line-height: 1.35;
     color: var(--body-quiet-color);
   }
-  .summary-card .summary-number {
-    display: block;
-    font-size: 26px;
-    line-height: 1;
-    font-weight: 700;
-  }
+  .summary-number { display: block; font-size: 25px; line-height: 1; font-weight: 700; }
   .summary-card.warning .summary-number { color: #dc2626; }
   .summary-card.success .summary-number { color: #16a34a; }
+
+  @media (max-width: 1000px) {
+    .ustp-dashboard-layout { grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; }
+  }
+  @media (max-width: 800px) {
+    .ustp-dashboard-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 520px) {
+    .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
 </style>
 {% endblock %}
 
-{% block coltype %}colMS{% endblock %}
+{% block coltype %}colM{% endblock %}
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
 {% block nav-breadcrumbs %}{% endblock %}
 {% block nav-sidebar %}{% endblock %}
 
 {% block content %}
-<div id="content-main" class="app-list">
-  <section class="dashboard-summary">
-    <h2>Ringkasan Dokumen Masuk</h2>
-    <div class="summary-grid">
-      <a class="summary-card" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?status__exact=Di+Resepsionis">
-        <span class="summary-label">Di Resepsionis</span>
-        <span class="summary-number">{{ dashboard_stats.masuk_resepsionis }}</span>
-      </a>
-      <a class="summary-card warning" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?terlambat=ya">
-        <span class="summary-label">Terlambat &gt; 3 hari</span>
-        <span class="summary-number">{{ dashboard_stats.masuk_terlambat }}</span>
-      </a>
-      <a class="summary-card success" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?status__exact=Sudah+Diambil">
-        <span class="summary-label">Sudah Diambil</span>
-        <span class="summary-number">{{ dashboard_stats.masuk_diambil }}</span>
-      </a>
-    </div>
-  </section>
+<div id="content-main" class="ustp-dashboard">
+  <div class="ustp-dashboard-layout">
+    <main class="ustp-main-column">
+      {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    </main>
 
-  <section class="dashboard-summary">
-    <h2>Ringkasan Dokumen Keluar</h2>
-    <div class="summary-grid">
-      <a class="summary-card" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Menunggu+Kurir">
-        <span class="summary-label">Menunggu Kurir</span>
-        <span class="summary-number">{{ dashboard_stats.keluar_menunggu }}</span>
-      </a>
-      <a class="summary-card success" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Sudah+Diserahkan+ke+JNE">
-        <span class="summary-label">Diserahkan ke JNE</span>
-        <span class="summary-number">{{ dashboard_stats.keluar_jne }}</span>
-      </a>
-      <a class="summary-card warning" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Paket+Kembali">
-        <span class="summary-label">Paket Kembali</span>
-        <span class="summary-number">{{ dashboard_stats.keluar_kembali }}</span>
-      </a>
-    </div>
-  </section>
+    <aside class="ustp-side-column">
+      <div class="module dashboard-summary">
+        <h2>Ringkasan Dokumen Masuk</h2>
+        <div class="summary-grid">
+          <a class="summary-card" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?status__exact=Di+Resepsionis">
+            <span class="summary-label">Di Resepsionis</span>
+            <span class="summary-number">{{ dashboard_stats.masuk_resepsionis }}</span>
+          </a>
+          <a class="summary-card warning" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?terlambat=ya">
+            <span class="summary-label">Terlambat &gt; 3 hari</span>
+            <span class="summary-number">{{ dashboard_stats.masuk_terlambat }}</span>
+          </a>
+          <a class="summary-card success" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?status__exact=Sudah+Diambil">
+            <span class="summary-label">Sudah Diambil</span>
+            <span class="summary-number">{{ dashboard_stats.masuk_diambil }}</span>
+          </a>
+        </div>
+      </div>
 
-  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
-</div>
-{% endblock %}
+      <div class="module dashboard-summary">
+        <h2>Ringkasan Dokumen Keluar</h2>
+        <div class="summary-grid">
+          <a class="summary-card" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Menunggu+Kurir">
+            <span class="summary-label">Menunggu Kurir</span>
+            <span class="summary-number">{{ dashboard_stats.keluar_menunggu }}</span>
+          </a>
+          <a class="summary-card success" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Sudah+Diserahkan+ke+JNE">
+            <span class="summary-label">Diserahkan ke JNE</span>
+            <span class="summary-number">{{ dashboard_stats.keluar_jne }}</span>
+          </a>
+          <a class="summary-card warning" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Paket+Kembali">
+            <span class="summary-label">Paket Kembali</span>
+            <span class="summary-number">{{ dashboard_stats.keluar_kembali }}</span>
+          </a>
+        </div>
+      </div>
 
-{% block sidebar %}
-<div id="content-related">
-  <div class="module" id="recent-actions-module">
-    <h2 style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRecentActions()">
-      {% translate 'Recent actions' %}<span id="recent-actions-icon">▼</span>
-    </h2>
-    <div id="recent-actions-content">
-      <h3>{% translate 'My actions' %}</h3>
-      {% load log %}
-      {% get_admin_log 10 as admin_log for_user user %}
-      {% if not admin_log %}
-      <p>{% translate 'None available' %}</p>
-      {% else %}
-      <ul class="actionlist">
-        {% for entry in admin_log %}
-        <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %} {% if forloop.counter > 3 %}extra-action{% endif %}" {% if forloop.counter > 3 %}style="display: none;"{% endif %}>
-          <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
-          {% if entry.is_deletion or not entry.get_admin_url %}{{ entry.object_repr|to_object_display_value }}{% else %}<a href="{{ entry.get_admin_url }}">{{ entry.object_repr|to_object_display_value }}</a>{% endif %}
-          <br>
-          {% if entry.content_type %}<span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>{% else %}<span class="mini quiet">{% translate 'Unknown content' %}</span>{% endif %}
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-    </div>
+      <div class="module" id="recent-actions-module">
+        <h2 style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRecentActions()">
+          {% translate 'Recent actions' %}<span id="recent-actions-icon">▼</span>
+        </h2>
+        <div id="recent-actions-content">
+          <h3>{% translate 'My actions' %}</h3>
+          {% load log %}
+          {% get_admin_log 10 as admin_log for_user user %}
+          {% if not admin_log %}
+          <p>{% translate 'None available' %}</p>
+          {% else %}
+          <ul class="actionlist">
+            {% for entry in admin_log %}
+            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %} {% if forloop.counter > 3 %}extra-action{% endif %}" {% if forloop.counter > 3 %}style="display: none;"{% endif %}>
+              <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
+              {% if entry.is_deletion or not entry.get_admin_url %}{{ entry.object_repr|to_object_display_value }}{% else %}<a href="{{ entry.get_admin_url }}">{{ entry.object_repr|to_object_display_value }}</a>{% endif %}
+              <br>
+              {% if entry.content_type %}<span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>{% else %}<span class="mini quiet">{% translate 'Unknown content' %}</span>{% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+    </aside>
   </div>
 </div>
 <script>
@@ -124,3 +152,5 @@ function toggleRecentActions() {
 }
 </script>
 {% endblock %}
+
+{% block sidebar %}{% endblock %}
