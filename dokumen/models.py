@@ -302,3 +302,8 @@ class RiwayatStatusDokumenKeluar(models.Model):
         verbose_name = 'Riwayat Status Dokumen Keluar'
         verbose_name_plural = 'Riwayat Status Dokumen Keluar'
         ordering = ['-diubah_pada']
+
+    def __str__(self):
+        if self.status_sebelumnya:
+            return f"{self.status_sebelumnya} → {self.status}"
+        return f"Status awal: {self.status}"
