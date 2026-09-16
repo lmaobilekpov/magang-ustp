@@ -3,6 +3,18 @@
 
 {% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* The audit-history inline already has a dedicated "Perubahan Status" column.
+       Hide Django's automatic "original object" cell so the value is not shown twice. */
+    .inline-group.tabular td.original,
+    .inline-group.tabular th.original {
+        display: none;
+    }
+</style>
+{% endblock %}
+
 {% block branding %}
 <h1 id="site-name">
     <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 10px;">
