@@ -86,6 +86,7 @@ class RiwayatKeluarInline(admin.TabularInline):
     fields = ('perubahan_status', 'diubah_pada', 'diubah_oleh')
     verbose_name = 'Perubahan Status'
     verbose_name_plural = 'Riwayat Perubahan Status'
+    classes = ('status-history-inline',)
 
     def has_add_permission(self, request, obj=None):
         return False
