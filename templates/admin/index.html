@@ -1,74 +1,106 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static admin_filters %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/dashboard.css" %}" {% csp_nonce_attr %}>{% endblock %}
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}" {% csp_nonce_attr %}>
+<style>
+  .dashboard-summary { margin-bottom: 24px; }
+  .dashboard-summary h2 { margin: 0 0 14px; font-size: 18px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .summary-card { display: block; padding: 18px; border: 1px solid var(--hairline-color); border-radius: 8px; background: var(--body-bg); color: var(--body-fg); text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+  .summary-card:hover { border-color: var(--link-fg); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .summary-card .summary-label { display: block; font-size: 13px; color: var(--body-quiet-color); margin-bottom: 8px; }
+  .summary-card .summary-number { display: block; font-size: 30px; line-height: 1; font-weight: 700; }
+  .summary-card.warning .summary-number { color: #dc2626; }
+  .summary-card.success .summary-number { color: #16a34a; }
+  .summary-section { margin-top: 20px; }
+  @media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 500px) { .summary-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
 
 {% block coltype %}colMS{% endblock %}
-
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
-
 {% block nav-breadcrumbs %}{% endblock %}
-
 {% block nav-sidebar %}{% endblock %}
 
 {% block content %}
 <div id="content-main" class="app-list">
+  <section class="dashboard-summary">
+    <h2>Ringkasan Dokumen Masuk</h2>
+    <div class="summary-grid">
+      <a class="summary-card" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?status__exact=Di+Resepsionis">
+        <span class="summary-label">Di Resepsionis</span>
+        <span class="summary-number">{{ dashboard_stats.masuk_resepsionis }}</span>
+      </a>
+      <a class="summary-card warning" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?terlambat=ya">
+        <span class="summary-label">Terlambat Diambil (&gt; 3 hari)</span>
+        <span class="summary-number">{{ dashboard_stats.masuk_terlambat }}</span>
+      </a>
+      <a class="summary-card success" href="{% url 'admin:dokumen_dokumenmasuk_changelist' %}?status__exact=Sudah+Diambil">
+        <span class="summary-label">Sudah Diambil</span>
+        <span class="summary-number">{{ dashboard_stats.masuk_diambil }}</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="dashboard-summary summary-section">
+    <h2>Ringkasan Dokumen Keluar</h2>
+    <div class="summary-grid">
+      <a class="summary-card" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Menunggu+Kurir">
+        <span class="summary-label">Menunggu Kurir</span>
+        <span class="summary-number">{{ dashboard_stats.keluar_menunggu }}</span>
+      </a>
+      <a class="summary-card success" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Sudah+Diserahkan+ke+JNE">
+        <span class="summary-label">Sudah Diserahkan ke JNE</span>
+        <span class="summary-number">{{ dashboard_stats.keluar_jne }}</span>
+      </a>
+      <a class="summary-card warning" href="{% url 'admin:dokumen_dokumenkeluar_changelist' %}?status__exact=Paket+Kembali">
+        <span class="summary-label">Paket Kembali</span>
+        <span class="summary-number">{{ dashboard_stats.keluar_kembali }}</span>
+      </a>
+    </div>
+  </section>
+
   {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
 </div>
 {% endblock %}
 
 {% block sidebar %}
 <div id="content-related">
-    <div class="module" id="recent-actions-module">
-        <h2 style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRecentActions()">
-            {% translate 'Recent actions' %}
-            <span id="recent-actions-icon">▼</span>
-        </h2>
-        <div id="recent-actions-content">
-            <h3>{% translate 'My actions' %}</h3>
-                {% load log %}
-                {% get_admin_log 10 as admin_log for_user user %}
-                {% if not admin_log %}
-                <p>{% translate 'None available' %}</p>
-                {% else %}
-                <ul class="actionlist">
-                {% for entry in admin_log %}
-                <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %} {% if forloop.counter > 3 %}extra-action{% endif %}" {% if forloop.counter > 3 %}style="display: none;"{% endif %}>
-                    <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
-                    {% if entry.is_deletion or not entry.get_admin_url %}
-                        {{ entry.object_repr|to_object_display_value }}
-                    {% else %}
-                        <a href="{{ entry.get_admin_url }}">{{ entry.object_repr|to_object_display_value }}</a>
-                    {% endif %}
-                    <br>
-                    {% if entry.content_type %}
-                        <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
-                    {% else %}
-                        <span class="mini quiet">{% translate 'Unknown content' %}</span>
-                    {% endif %}
-                </li>
-                {% endfor %}
-                </ul>
-                {% endif %}
-        </div>
+  <div class="module" id="recent-actions-module">
+    <h2 style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRecentActions()">
+      {% translate 'Recent actions' %}<span id="recent-actions-icon">▼</span>
+    </h2>
+    <div id="recent-actions-content">
+      <h3>{% translate 'My actions' %}</h3>
+      {% load log %}
+      {% get_admin_log 10 as admin_log for_user user %}
+      {% if not admin_log %}
+      <p>{% translate 'None available' %}</p>
+      {% else %}
+      <ul class="actionlist">
+        {% for entry in admin_log %}
+        <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %} {% if forloop.counter > 3 %}extra-action{% endif %}" {% if forloop.counter > 3 %}style="display: none;"{% endif %}>
+          <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
+          {% if entry.is_deletion or not entry.get_admin_url %}{{ entry.object_repr|to_object_display_value }}{% else %}<a href="{{ entry.get_admin_url }}">{{ entry.object_repr|to_object_display_value }}</a>{% endif %}
+          <br>
+          {% if entry.content_type %}<span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>{% else %}<span class="mini quiet">{% translate 'Unknown content' %}</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
     </div>
+  </div>
 </div>
 <script>
 function toggleRecentActions() {
-    var icon = document.getElementById("recent-actions-icon");
-    var extraActions = document.getElementsByClassName("extra-action");
-    
-    if (icon.innerHTML === "▼") {
-        for (var i = 0; i < extraActions.length; i++) {
-            extraActions[i].style.display = "";
-        }
-        icon.innerHTML = "▲";
-    } else {
-        for (var i = 0; i < extraActions.length; i++) {
-            extraActions[i].style.display = "none";
-        }
-        icon.innerHTML = "▼";
-    }
+  var icon = document.getElementById('recent-actions-icon');
+  var extraActions = document.getElementsByClassName('extra-action');
+  var expanded = icon.innerHTML === '▼';
+  for (var i = 0; i < extraActions.length; i++) extraActions[i].style.display = expanded ? '' : 'none';
+  icon.innerHTML = expanded ? '▲' : '▼';
 }
 </script>
 {% endblock %}
