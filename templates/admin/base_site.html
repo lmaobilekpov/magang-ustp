@@ -6,11 +6,10 @@
 {% block extrastyle %}
 {{ block.super }}
 <style>
-    /* The audit-history inline already has a dedicated "Perubahan Status" column.
-       Hide Django's automatic "original object" cell so the value is not shown twice. */
-    .inline-group.tabular td.original,
-    .inline-group.tabular th.original {
-        display: none;
+    /* Django puts "tabular" on the TABLE, not on .inline-group. */
+    .inline-group table.tabular td.original,
+    .inline-group table.tabular th.original {
+        display: none !important;
     }
 </style>
 {% endblock %}
