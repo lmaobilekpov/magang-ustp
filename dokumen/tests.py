@@ -1,11 +1,22 @@
 from datetime import date
+import os
+import tempfile
 
+from django.contrib.auth import get_user_model
+from django.core import management
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Karyawan, DokumenMasuk, DokumenKeluar
+from .admin import DokumenKeluarAdmin, DokumenMasukAdmin
+from .models import (
+    Karyawan,
+    DokumenMasuk,
+    DokumenKeluar,
+    RiwayatStatusDokumenMasuk,
+    RiwayatStatusDokumenKeluar,
+)
 
 
 class DokumenMasukTest(TestCase):
@@ -231,6 +242,95 @@ class DokumenKeluarTest(TestCase):
 
         with self.assertRaises(ValidationError):
             dokumen.full_clean()
+
+    def test_paket_kembali_tidak_bisa_langsung_dibuat(self):
+        dokumen = DokumenKeluar(
+            nama_pengirim=self.karyawan.nama_lengkap,
+            deskripsi='Dokumen untuk dikirim',
+            status='Paket Kembali',
+            resi_jne='https://jne.co.id/tracking/ABC123',
+        )
+
+        with self.assertRaises(ValidationError):
+            dokumen.full_clean()
+
+
+class StatusHistoryTest(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='resepsionis', password='password123')
+        self.other_user = User.objects.create_user(username='operator2', password='password123')
+        self.karyawan = Karyawan.objects.create(
+            kode_karyawan='EMP010',
+            nama_lengkap='Citra Lestari',
+            jabatan='Staff',
+            tanggal_lahir=date(2001, 2, 3),
+        )
+        self.factory = RequestFactory()
+
+    def test_dokumen_masuk_mencatat_status_awal_dan_perubahan(self):
+        request = self.factory.post('/admin/dokumen/dokumenmasuk/add/')
+        request.user = self.user
+        admin_model = DokumenMasukAdmin(DokumenMasuk, admin.site)
+
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima=self.karyawan.nama_lengkap,
+            status='Di Resepsionis',
+        )
+        admin_model.save_model(request, dokumen, None, False)
+
+        dokumen.status = 'Sudah Diambil'
+        dokumen.dob_pengambil = self.karyawan.tanggal_lahir
+        admin_model.save_model(request, dokumen, None, True)
+
+        riwayat = list(dokumen.riwayat_status.order_by('diubah_pada'))
+        self.assertEqual([item.status for item in riwayat], ['Di Resepsionis', 'Sudah Diambil'])
+        self.assertEqual(riwayat[0].diubah_oleh, self.user)
+        self.assertEqual(riwayat[1].diubah_oleh, self.user)
+
+    def test_dokumen_masuk_tidak_menambah_histori_jika_status_tetap(self):
+        request = self.factory.post('/admin/dokumen/dokumenmasuk/change/')
+        request.user = self.user
+        admin_model = DokumenMasukAdmin(DokumenMasuk, admin.site)
+
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi',
+            jenis_pengirim='Non-PT',
+            pengirim='Andi',
+            nama_penerima=self.karyawan.nama_lengkap,
+            status='Di Resepsionis',
+        )
+        admin_model.save_model(request, dokumen, None, False)
+        self.assertEqual(dokumen.riwayat_status.count(), 1)
+
+        dokumen.pengirim = 'Andi Diperbarui'
+        admin_model.save_model(request, dokumen, None, True)
+        self.assertEqual(dokumen.riwayat_status.count(), 1)
+
+    def test_dokumen_keluar_mencatat_pengubah_status(self):
+        request = self.factory.post('/admin/dokumen/dokumenkeluar/add/')
+        request.user = self.user
+        admin_model = DokumenKeluarAdmin(DokumenKeluar, admin.site)
+
+        dokumen = DokumenKeluar(
+            nama_pengirim=self.karyawan.nama_lengkap,
+            deskripsi='Dokumen untuk dikirim',
+            status='Menunggu Kurir',
+        )
+        admin_model.save_model(request, dokumen, None, False)
+
+        request.user = self.other_user
+        dokumen.status = 'Sudah Diserahkan ke JNE'
+        dokumen.resi_jne = 'https://jne.co.id/tracking/ABC123'
+        admin_model.save_model(request, dokumen, None, True)
+
+        riwayat = list(dokumen.riwayat_status.order_by('diubah_pada'))
+        self.assertEqual([item.status for item in riwayat], ['Menunggu Kurir', 'Sudah Diserahkan ke JNE'])
+        self.assertEqual(riwayat[0].diubah_oleh, self.user)
+        self.assertEqual(riwayat[1].diubah_oleh, self.other_user)
 
 
 class PortalKaryawanTest(TestCase):
