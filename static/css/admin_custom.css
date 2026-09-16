@@ -1,4 +1,11 @@
-/* Sembunyikan elemen teks original (biasanya berasal dari __str__) di dalam baris TabularInline yang readonly agar tidak double */
-div.inline-group .tabular td.original p {
-    display: none;
+/* Hilangkan label objek bawaan Django pada readonly TabularInline. */
+div.inline-group .tabular td.original,
+div.inline-group .tabular th.original {
+    display: none !important;
+}
+
+/* Readonly fields dirender dalam <p class="readonly">; reset margin agar baris histori tidak terlalu tinggi. */
+div.inline-group .tabular td p.readonly {
+    margin: 0 !important;
+    padding: 0 !important;
 }
