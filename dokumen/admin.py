@@ -75,6 +75,18 @@ class RiwayatKeluarInline(admin.TabularInline):
     verbose_name = 'Perubahan Status'
     verbose_name_plural = 'Riwayat Perubahan Status'
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return True
+
     @admin.display(description='Perubahan Status')
     def perubahan_status(self, obj):
         if not obj.status_sebelumnya:
