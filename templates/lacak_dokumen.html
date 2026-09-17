@@ -1,331 +1,91 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Karyawan - Pelacakan Dokumen USTP</title>
+    <title>Verifikasi Karyawan - USTP</title>
     <style>
+        * { box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
             margin: 0;
-            padding: 40px 20px;
-            color: #334155;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7f6;
+            color: #1e293b;
         }
-
         .container {
-            max-width: 700px;
-            margin: auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 460px;
+            background: #fff;
+            padding: 34px;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
         }
-
-        h2 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-
-        p.subtitle {
-            text-align: center;
-            color: #7f8c8d;
-            margin-bottom: 25px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #34495e;
-        }
-
+        h1 { margin: 0 0 8px; color: #1e3a5f; font-size: 26px; }
+        .subtitle { margin: 0 0 26px; color: #64748b; line-height: 1.5; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; }
         input[type="date"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            box-sizing: border-box;
+            border-radius: 8px;
+            font: inherit;
+            margin-bottom: 16px;
         }
-
         button {
             width: 100%;
-            padding: 12px;
-            background-color: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background-color: #1a252f;
-        }
-
-        .alert-error,
-        .alert-success {
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-
-        .alert-error {
-            background-color: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #ef4444;
-        }
-
-        .alert-success {
-            background-color: #dcfce7;
-            color: #166534;
-            border-left: 4px solid #22c55e;
-        }
-
-        hr {
             border: 0;
-            height: 1px;
-            background: #e2e8f0;
-            margin: 30px 0;
-        }
-
-        h3 {
-            color: #2c3e50;
-            margin-bottom: 4px;
-        }
-
-        h4 {
-            color: #0f172a;
-            margin: 28px 0 12px;
-        }
-
-        .document-card {
-            border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
-            background: #fff;
+            padding: 13px;
+            background: #1e5f7a;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
         }
-
-        .document-card-header {
-            margin-bottom: 14px;
-            color: #475569;
-            font-size: 14px;
+        button:hover { background: #174b61; }
+        .alert-error {
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            color: #991b1b;
         }
-
-        .document-card-header strong {
-            color: #1e293b;
-        }
-
-        .timeline {
-            margin: 0 0 2px 7px;
-            padding-left: 24px;
-        }
-
-        .timeline-item {
-            position: relative;
-            padding-bottom: 16px;
-        }
-
-        .timeline-item:last-child {
-            padding-bottom: 0;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -24px;
-            top: 5px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #2c3e50;
-            border: 2px solid white;
-            box-shadow: 0 0 0 1px #2c3e50;
-        }
-
-        .timeline-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            left: -18px;
-            top: 19px;
-            bottom: 0;
-            width: 2px;
-            background: #cbd5e1;
-        }
-
-        .timeline-status {
-            color: #1e293b;
-            font-weight: 600;
-            line-height: 1.4;
-        }
-
-        .timeline-date {
-            color: #64748b;
+        .info {
+            margin-top: 22px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #1e40af;
             font-size: 13px;
-            margin-top: 3px;
-        }
-
-        .tracking-link {
-            display: inline-block;
-            margin-top: 12px;
-            color: #2563eb;
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .tracking-link:hover {
-            text-decoration: underline;
-        }
-
-        .empty-message {
-            font-size: 14px;
-            color: #64748b;
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 20px 10px;
-            }
-
-            .container {
-                padding: 20px;
-            }
+            line-height: 1.5;
         }
     </style>
 </head>
-
 <body>
-
-    <div class="container">
-        <h2>Portal Karyawan USTP</h2>
-        <p class="subtitle">Verifikasi untuk melacak status dokumen Anda</p>
+    <main class="container">
+        <h1>Portal Karyawan USTP</h1>
+        <p class="subtitle">Verifikasi identitas untuk melihat riwayat dokumen masuk dan dokumen keluar Anda.</p>
 
         {% if pesan_error %}
         <div class="alert-error">{{ pesan_error }}</div>
         {% endif %}
-        {% if pesan_sukses %}
-        <div class="alert-success">{{ pesan_sukses }}</div>
-        {% endif %}
 
-        <form method="POST" id="form-pelacakan">
+        <form method="POST">
             {% csrf_token %}
-            <div class="form-group">
-                <label for="tanggal_lahir">Tanggal Lahir</label>
-                <input type="date" id="tanggal_lahir" name="tanggal_lahir" required>
-            </div>
-            <button type="submit">Lacak Dokumen Saya</button>
+            <label for="tanggal_lahir">Tanggal Lahir</label>
+            <input type="date" id="tanggal_lahir" name="tanggal_lahir" required>
+            <button type="submit">Verifikasi dan Lihat Riwayat</button>
         </form>
 
-        {% if karyawan %}
-        <div id="hasil-pelacakan">
-            <hr>
-            <h3>Hai, {{ karyawan.nama_lengkap }}!</h3>
-            <p style="color: #64748b; font-size: 14px;">Berikut adalah riwayat dokumen Anda.</p>
-
-            <h4>📦 Dokumen Masuk (Diterima)</h4>
-            {% if dokumen_masuk %}
-            {% for doc in dokumen_masuk %}
-            <div class="document-card">
-                <div class="document-card-header">
-                    <strong>{{ doc.kategori }}</strong><br>
-                    Pengirim: {{ doc.pengirim }}<br>
-                    Diterima: {{ doc.tanggal_terima|date:"d-m-Y" }}
-                </div>
-
-                <div class="timeline">
-                    {% for riwayat in doc.riwayat_status_timeline %}
-                    <div class="timeline-item">
-                        <div class="timeline-status">
-                            {% if riwayat.status_sebelumnya %}
-                            {{ riwayat.status_sebelumnya }} → {{ riwayat.status }}
-                            {% else %}
-                            Status awal: {{ riwayat.status }}
-                            {% endif %}
-                        </div>
-                        <div class="timeline-date">{{ riwayat.diubah_pada|date:"d-m-Y H:i" }}</div>
-                    </div>
-                    {% empty %}
-                    <div class="timeline-item">
-                        <div class="timeline-status">{{ doc.status }}</div>
-                        <div class="timeline-date">Status saat ini</div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                {% if doc.tanggal_diambil %}
-                <div class="timeline-date" style="margin-top: 12px;">Diambil: {{ doc.tanggal_diambil|date:"d-m-Y H:i" }}</div>
-                {% endif %}
-            </div>
-            {% endfor %}
-            {% else %}
-            <p class="empty-message">Belum ada paket/dokumen yang masuk untuk Anda.</p>
-            {% endif %}
-
-            <h4>📤 Dokumen Keluar (Dikirim)</h4>
-            {% if dokumen_keluar %}
-            {% for doc in dokumen_keluar %}
-            <div class="document-card">
-                <div class="document-card-header">
-                    <strong>Dokumen Keluar</strong><br>
-                    Nomor resi internal: {{ doc.nomor_resi_internal }}
-                </div>
-
-                <div class="timeline">
-                    {% for riwayat in doc.riwayat_status_timeline %}
-                    <div class="timeline-item">
-                        <div class="timeline-status">
-                            {% if riwayat.status_sebelumnya %}
-                            {{ riwayat.status_sebelumnya }} → {{ riwayat.status }}
-                            {% else %}
-                            Status awal: {{ riwayat.status }}
-                            {% endif %}
-                        </div>
-                        <div class="timeline-date">{{ riwayat.diubah_pada|date:"d-m-Y H:i" }}</div>
-                    </div>
-                    {% empty %}
-                    <div class="timeline-item">
-                        <div class="timeline-status">{{ doc.status }}</div>
-                        <div class="timeline-date">Status saat ini</div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                {% if doc.resi_jne and doc.status == 'Sudah Diserahkan ke JNE' %}
-                <a class="tracking-link" href="{{ doc.resi_jne }}" target="_blank" rel="noopener noreferrer">🔗 Lacak Paket di JNE</a>
-                {% endif %}
-            </div>
-            {% endfor %}
-            {% else %}
-            <p class="empty-message">Belum ada riwayat pengiriman dari Anda.</p>
-            {% endif %}
+        <div class="info">
+            Data riwayat hanya dapat dilihat setelah verifikasi berhasil. Jika mengalami kendala, silakan hubungi resepsionis.
         </div>
-        {% endif %}
-    </div>
-
-    <script>
-        function resetPortal() {
-            const hasil = document.getElementById('hasil-pelacakan');
-            const form = document.getElementById('form-pelacakan');
-            if (hasil) hasil.remove();
-            if (form) form.reset();
-        }
-
-        window.addEventListener('pagehide', resetPortal);
-        window.addEventListener('pageshow', function (event) {
-            if (event.persisted) resetPortal();
-        });
-    </script>
-
+    </main>
 </body>
-
 </html>
