@@ -7,6 +7,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.lacak_dokumen, name='lacak_dokumen'),
+    path('riwayat/', views.riwayat_dokumen, name='riwayat_dokumen'),
+    path('keluar/', views.keluar_portal, name='keluar_portal'),
 ]
 
 if settings.DEBUG:
