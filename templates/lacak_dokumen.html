@@ -126,19 +126,8 @@
         }
 
         .timeline {
-            position: relative;
             margin: 0 0 2px 7px;
             padding-left: 24px;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 4px;
-            top: 7px;
-            bottom: 7px;
-            width: 2px;
-            background: #cbd5e1;
         }
 
         .timeline-item {
@@ -161,6 +150,16 @@
             background: #2c3e50;
             border: 2px solid white;
             box-shadow: 0 0 0 1px #2c3e50;
+        }
+
+        .timeline-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: -18px;
+            top: 19px;
+            bottom: 0;
+            width: 2px;
+            background: #cbd5e1;
         }
 
         .timeline-status {
