@@ -1,11 +1,19 @@
 /* Hilangkan label objek bawaan Django pada readonly TabularInline. */
-div.inline-group .tabular td.original,
-div.inline-group .tabular th.original {
+div.inline-group .tabular td.original p {
     display: none !important;
 }
 
-/* Readonly fields dirender dalam <p class="readonly">; reset margin agar baris histori tidak terlalu tinggi. */
-div.inline-group .tabular td p.readonly {
+/* Memastikan sel data tidak memiliki padding berlebih dari bawaan Django */
+div.inline-group .tabular tr.has_original td,
+div.inline-group .tabular td {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    vertical-align: middle !important;
+}
+
+/* Mereset margin pada tag <p> yang biasanya ada di field readonly */
+div.inline-group .tabular td p {
     margin: 0 !important;
     padding: 0 !important;
+    line-height: 1.4 !important;
 }
