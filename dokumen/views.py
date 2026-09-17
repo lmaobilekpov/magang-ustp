@@ -1,5 +1,11 @@
 from django.shortcuts import render, redirect
-from .models import Karyawan, DokumenMasuk, DokumenKeluar
+from django.db.models import Prefetch
+from .models import (
+    Karyawan,
+    DokumenMasuk,
+    DokumenKeluar,
+    RiwayatStatusDokumenKeluar,
+)
 
 
 def render_portal(request, context=None):
@@ -21,7 +27,16 @@ def lacak_dokumen(request):
             context['pesan_error'] = 'Data karyawan tidak ditemukan dalam sistem.'
             return render_portal(request, context)
 
-        dokumen_keluar = DokumenKeluar.objects.filter(nama_pengirim=karyawan.nama_lengkap)
+        riwayat_keluar = RiwayatStatusDokumenKeluar.objects.order_by('diubah_pada')
+        dokumen_keluar = DokumenKeluar.objects.filter(
+            nama_pengirim=karyawan.nama_lengkap
+        ).prefetch_related(
+            Prefetch(
+                'riwayat_status',
+                queryset=riwayat_keluar,
+                to_attr='riwayat_status_timeline',
+            )
+        )
         dokumen_masuk = DokumenMasuk.objects.filter(nama_penerima=karyawan.nama_lengkap)
 
         context = {
