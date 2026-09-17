@@ -181,6 +181,7 @@ class DokumenKeluar(models.Model):
             nama_lengkap__iexact=nama_pengirim
         ).first()
 
+        data_lama = None
         if self.pk:
             data_lama = DokumenKeluar.objects.get(pk=self.pk)
             nama_lama = (data_lama.nama_pengirim or '').strip()
@@ -193,6 +194,21 @@ class DokumenKeluar(models.Model):
                 'nama_pengirim': 'Nama pengirim harus sesuai dengan data karyawan yang masih aktif.'
             })
 
+        if data_lama and data_lama.status != self.status:
+            allowed_transitions = {
+                'Menunggu Kurir': {'Sudah Diserahkan ke JNE'},
+                'Sudah Diserahkan ke JNE': {'Paket Kembali'},
+                'Paket Kembali': set(),
+            }
+            allowed_next_statuses = allowed_transitions.get(data_lama.status, set())
+            if self.status not in allowed_next_statuses:
+                raise ValidationError({
+                    'status': (
+                        f'Status tidak dapat diubah dari "{data_lama.status}" ke "{self.status}". '
+                        'Alur yang diperbolehkan adalah Menunggu Kurir → Sudah Diserahkan ke JNE → Paket Kembali.'
+                    )
+                })
+
         if self.status == 'Sudah Diserahkan ke JNE' and not self.resi_jne:
             raise ValidationError({
                 'resi_jne': 'URL Resi JNE wajib diisi jika status sudah diserahkan ke JNE.'
@@ -204,8 +220,7 @@ class DokumenKeluar(models.Model):
                     'status': 'Paket Kembali hanya dapat digunakan untuk transaksi yang sudah diserahkan ke JNE.'
                 })
 
-            data_lama = DokumenKeluar.objects.get(pk=self.pk)
-            if data_lama.status not in ('Sudah Diserahkan ke JNE', 'Paket Kembali'):
+            if data_lama and data_lama.status not in ('Sudah Diserahkan ke JNE', 'Paket Kembali'):
                 raise ValidationError({
                     'status': 'Dokumen harus berstatus Sudah Diserahkan ke JNE sebelum ditandai Paket Kembali.'
                 })
