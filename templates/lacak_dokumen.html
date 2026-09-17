@@ -301,7 +301,7 @@
                     {% endfor %}
                 </div>
 
-                {% if doc.resi_jne %}
+                {% if doc.resi_jne and doc.status != 'Paket Kembali' %}
                 <a class="tracking-link" href="{{ doc.resi_jne }}" target="_blank" rel="noopener noreferrer">🔗 Lacak Paket di JNE</a>
                 {% endif %}
             </div>
