@@ -60,7 +60,6 @@ class DokumenMasukForm(forms.ModelForm):
         jenis_pengirim = self.cleaned_data.get('jenis_pengirim')
         pt_pengirim = self.cleaned_data.get('pt_pengirim')
 
-        # Jika sumbernya PT/Instansi, ambil nama pengirim dari Supplier terpilih.
         if jenis_pengirim == 'PT' and pt_pengirim:
             return pt_pengirim.nama_supplier
 
@@ -145,7 +144,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     @admin.display(description='Indikator')
     def indikator_pengambilan(self, obj):
         if obj.terlambat_diambil:
-            return format_html('<strong style="color: #dc2626;">⚠ Terlambat</strong>')
+            return format_html('<strong style="color: #dc2626;">{}</strong>', '⚠ Terlambat')
         if obj.status == 'Sudah Diambil':
             return mark_safe('<span style="color: #16a34a;">✓ Selesai</span>')
         return '-'
