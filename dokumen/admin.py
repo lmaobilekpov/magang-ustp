@@ -122,6 +122,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
         css = {
             'all': ('css/admin_custom.css',)
         }
+        js = ('js/dokumen_masuk_form.js',)
 
     @admin.display(description='Indikator')
     def indikator_pengambilan(self, obj):
