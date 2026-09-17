@@ -50,6 +50,23 @@ class TerlambatDiambilFilter(admin.SimpleListFilter):
         return queryset
 
 
+class DokumenMasukForm(forms.ModelForm):
+    class Meta:
+        model = DokumenMasuk
+        fields = '__all__'
+
+    def clean_pengirim(self):
+        pengirim = (self.cleaned_data.get('pengirim') or '').strip()
+        jenis_pengirim = self.cleaned_data.get('jenis_pengirim')
+        pt_pengirim = self.cleaned_data.get('pt_pengirim')
+
+        # Jika sumbernya PT/Instansi, ambil nama pengirim dari Supplier terpilih.
+        if jenis_pengirim == 'PT' and pt_pengirim:
+            return pt_pengirim.nama_supplier
+
+        return pengirim
+
+
 class RiwayatMasukInline(admin.TabularInline):
     model = RiwayatStatusDokumenMasuk
     extra = 0
@@ -109,6 +126,7 @@ class RiwayatKeluarInline(admin.TabularInline):
 
 @admin.register(DokumenMasuk)
 class DokumenMasukAdmin(admin.ModelAdmin):
+    form = DokumenMasukForm
     list_display = ('tanggal_terima', 'kategori', 'pengirim', 'nama_penerima', 'status', 'indikator_pengambilan', 'foto_thumbnail')
     search_fields = ('pengirim', 'nama_penerima')
     autocomplete_fields = ('pt_pengirim',)
@@ -149,6 +167,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             karyawan_list = list(Karyawan.objects.filter(aktif=True).order_by('nama_lengkap'))
             return forms.CharField(label=db_field.verbose_name, required=True, widget=KaryawanDatalistWidget(karyawan_list, attrs={'style': 'width: 350px;', 'list': 'id_nama_penerima-list', 'autocomplete': 'off'}))
         if db_field.name == 'pengirim':
+            kwargs['required'] = False
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'id': 'id_pengirim'})
         if isinstance(db_field, models.DateTimeField):
             kwargs['form_class'] = DateTimeFormField
