@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riwayat Dokumen - Portal Karyawan USTP</title>
+    <title>Riwayat Selesai - Portal Karyawan USTP</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -24,6 +24,7 @@
         }
         h1 { margin: 0 0 6px; color: #1e3a5f; font-size: 28px; }
         .subtitle { margin: 0; color: #64748b; }
+        .nav { display: flex; gap: 8px; flex-wrap: wrap; }
         .button {
             display: inline-block;
             padding: 10px 14px;
@@ -72,15 +73,6 @@
         }
         .timeline-status { font-weight: 600; line-height: 1.45; color: #1e293b; }
         .timeline-date { margin-top: 4px; color: #64748b; font-size: 13px; }
-        .tracking-link {
-            display: inline-block;
-            margin-top: 16px;
-            color: #2563eb;
-            font-weight: 600;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .tracking-link:hover { text-decoration: underline; }
         .empty-message {
             background: #fff;
             border: 1px dashed #cbd5e1;
@@ -108,20 +100,24 @@
     <main class="container">
         <div class="topbar">
             <div>
-                <h1>Riwayat Dokumen Anda</h1>
-                <p class="subtitle">Halo, <strong>{{ karyawan.nama_lengkap }}</strong>. Berikut dokumen yang tercatat atas nama Anda.</p>
+                <h1>Riwayat Dokumen Selesai</h1>
+                <p class="subtitle">Halo, <strong>{{ karyawan.nama_lengkap }}</strong>. Berikut dokumen yang prosesnya sudah selesai.</p>
             </div>
-            <a class="button secondary" href="{% url 'keluar_portal' %}">Keluar</a>
+            <nav class="nav">
+                <a class="button" href="{% url 'dokumen_aktif' %}">Dokumen Berjalan</a>
+                <a class="button secondary" href="{% url 'keluar_portal' %}">Keluar</a>
+            </nav>
         </div>
 
-        <h2 class="section-title">📦 Dokumen Masuk (Diterima)</h2>
+        <h2 class="section-title">📦 Dokumen Masuk — Sudah Diambil</h2>
         {% if dokumen_masuk %}
             {% for doc in dokumen_masuk %}
             <article class="document-card">
                 <div class="document-card-header">
                     <strong>{{ doc.kategori }}</strong><br>
-                    Pengirim: {{ doc.pengirim }}<br>
-                    Diterima: {{ doc.tanggal_terima|date:"d-m-Y" }}
+                    Pengirim: {% if doc.jenis_pengirim == 'PT' and doc.pt_pengirim %}{{ doc.pt_pengirim.nama_supplier }}{% else %}{{ doc.pengirim }}{% endif %}<br>
+                    Diterima: {{ doc.tanggal_terima|date:"d-m-Y" }}<br>
+                    Diambil: {{ doc.tanggal_diambil|date:"d-m-Y H:i" }}
                 </div>
                 <div class="timeline">
                     {% for riwayat in doc.riwayat_status_timeline %}
@@ -135,28 +131,22 @@
                         </div>
                         <div class="timeline-date">{{ riwayat.diubah_pada|date:"d-m-Y H:i" }}</div>
                     </div>
-                    {% empty %}
-                    <div class="timeline-item">
-                        <div class="timeline-status">Status saat ini: {{ doc.status }}</div>
-                    </div>
                     {% endfor %}
                 </div>
-                {% if doc.tanggal_diambil %}
-                    <div class="timeline-date" style="margin-top: 16px;">Diambil: {{ doc.tanggal_diambil|date:"d-m-Y H:i" }}</div>
-                {% endif %}
             </article>
             {% endfor %}
         {% else %}
-            <p class="empty-message">Belum ada dokumen masuk dalam periode riwayat yang ditampilkan.</p>
+            <p class="empty-message">Belum ada dokumen masuk yang sudah diambil.</p>
         {% endif %}
 
-        <h2 class="section-title">📤 Dokumen Keluar (Dikirim)</h2>
+        <h2 class="section-title">📤 Dokumen Keluar — Paket Kembali</h2>
         {% if dokumen_keluar %}
             {% for doc in dokumen_keluar %}
             <article class="document-card">
                 <div class="document-card-header">
                     <strong>Dokumen Keluar</strong><br>
-                    Nomor resi internal: {{ doc.nomor_resi_internal }}
+                    Nomor resi internal: {{ doc.nomor_resi_internal }}<br>
+                    Status akhir: {{ doc.status }}
                 </div>
                 <div class="timeline">
                     {% for riwayat in doc.riwayat_status_timeline %}
@@ -170,23 +160,16 @@
                         </div>
                         <div class="timeline-date">{{ riwayat.diubah_pada|date:"d-m-Y H:i" }}</div>
                     </div>
-                    {% empty %}
-                    <div class="timeline-item">
-                        <div class="timeline-status">Status saat ini: {{ doc.status }}</div>
-                    </div>
                     {% endfor %}
                 </div>
-                {% if doc.resi_jne and doc.status == 'Sudah Diserahkan ke JNE' %}
-                    <a class="tracking-link" href="{{ doc.resi_jne }}" target="_blank" rel="noopener noreferrer">🔗 Lacak Paket di JNE</a>
-                {% endif %}
             </article>
             {% endfor %}
         {% else %}
-            <p class="empty-message">Belum ada dokumen keluar dalam periode riwayat yang ditampilkan.</p>
+            <p class="empty-message">Belum ada dokumen keluar dengan status Paket Kembali.</p>
         {% endif %}
 
         <div class="retention-note">
-            Riwayat yang ditampilkan adalah data dalam {{ retensi_hari }} hari terakhir, dihitung dari tanggal dokumen diterima.
+            Riwayat selesai yang ditampilkan adalah data dalam {{ retensi_hari }} hari terakhir, dihitung dari tanggal dokumen diterima.
         </div>
     </main>
 </body>
