@@ -147,7 +147,7 @@ class DokumenMasukAdmin(admin.ModelAdmin):
         if obj.terlambat_diambil:
             return format_html('<strong style="color: #dc2626;">⚠ Terlambat</strong>')
         if obj.status == 'Sudah Diambil':
-            return format_html('<span style="color: #16a34a;">✓ Selesai</span>')
+            return mark_safe('<span style="color: #16a34a;">✓ Selesai</span>')
         return '-'
 
     formfield_overrides = {models.DateField: {'widget': DateInput(attrs={'type': 'date'})}}
