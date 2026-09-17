@@ -4,6 +4,7 @@ from .models import (
     Karyawan,
     DokumenMasuk,
     DokumenKeluar,
+    RiwayatStatusDokumenMasuk,
     RiwayatStatusDokumenKeluar,
 )
 
@@ -27,7 +28,18 @@ def lacak_dokumen(request):
             context['pesan_error'] = 'Data karyawan tidak ditemukan dalam sistem.'
             return render_portal(request, context)
 
+        riwayat_masuk = RiwayatStatusDokumenMasuk.objects.order_by('diubah_pada')
         riwayat_keluar = RiwayatStatusDokumenKeluar.objects.order_by('diubah_pada')
+
+        dokumen_masuk = DokumenMasuk.objects.filter(
+            nama_penerima=karyawan.nama_lengkap
+        ).prefetch_related(
+            Prefetch(
+                'riwayat_status',
+                queryset=riwayat_masuk,
+                to_attr='riwayat_status_timeline',
+            )
+        )
         dokumen_keluar = DokumenKeluar.objects.filter(
             nama_pengirim=karyawan.nama_lengkap
         ).prefetch_related(
@@ -37,7 +49,6 @@ def lacak_dokumen(request):
                 to_attr='riwayat_status_timeline',
             )
         )
-        dokumen_masuk = DokumenMasuk.objects.filter(nama_penerima=karyawan.nama_lengkap)
 
         context = {
             'karyawan': karyawan,
