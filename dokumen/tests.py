@@ -77,21 +77,34 @@ class DokumenMasukTest(TestCase):
         dokumen.save()
         self.assertIsNone(dokumen.tanggal_diambil)
 
-    def test_legacy_null_di_resepsionis_valid(self):
-        """Data lama tanpa karyawan_penerima + status Di Resepsionis harus tetap valid."""
+    def test_dokumen_baru_tanpa_karyawan_penerima_ditolak(self):
+        """Dokumen BARU + karyawan_penerima=None + Di Resepsionis harus ditolak."""
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
             nama_penerima='Siapa Saja', karyawan_penerima=None, status='Di Resepsionis',
         )
+        with self.assertRaises(ValidationError):
+            dokumen.full_clean()
+
+    def test_legacy_null_di_resepsionis_valid(self):
+        """Data LEGACY (sudah tersimpan) + karyawan_penerima=NULL + Di Resepsionis = valid."""
+        # Simpan langsung ke DB tanpa melewati clean() untuk mensimulasikan data legacy
+        dokumen = DokumenMasuk.objects.create(
+            kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
+            nama_penerima='Siapa Saja', karyawan_penerima=None, status='Di Resepsionis',
+        )
+        # Sekarang edit field lain — harus tetap valid karena legacy
+        dokumen.pengirim = 'Andi diperbarui'
         dokumen.full_clean()
 
     def test_legacy_null_sudah_diambil_invalid(self):
-        """Data lama tanpa karyawan_penerima + status Sudah Diambil harus ditolak."""
-        dokumen = DokumenMasuk(
+        """Data LEGACY + karyawan_penerima=NULL + Sudah Diambil harus ditolak."""
+        dokumen = DokumenMasuk.objects.create(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima='Siapa Saja', karyawan_penerima=None, status='Sudah Diambil',
-            dob_pengambil=date(2000, 1, 15),
+            nama_penerima='Siapa Saja', karyawan_penerima=None, status='Di Resepsionis',
         )
+        dokumen.status = 'Sudah Diambil'
+        dokumen.dob_pengambil = date(2000, 1, 15)
         with self.assertRaises(ValidationError):
             dokumen.full_clean()
 

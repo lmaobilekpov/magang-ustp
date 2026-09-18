@@ -110,13 +110,14 @@ class DokumenMasuk(models.Model):
 
         # 1️⃣ Jika karyawan_penerima belum di‑set
         if not self.karyawan_penerima:
-            # a) Status *Di Resepsionis* → masih valid (legacy data)
-            if self.status == 'Di Resepsionis':
-                # Tidak perlu mengubah nama_penerima; biarkan field snapshot tetap ada.
+            # Data legacy (sudah tersimpan) dengan status Di Resepsionis tetap valid
+            if self.pk and self.status == 'Di Resepsionis':
                 return
-            # b) Status *Sudah Diambil* → wajib pilih karyawan penerima
+            # Transaksi baru wajib memilih karyawan; legacy yang hendak diambil juga wajib
             raise ValidationError({
-                'karyawan_penerima': 'Karyawan Penerima wajib dipilih ketika status Sudah Diambil.'
+                'karyawan_penerima':
+                    'Karyawan Penerima wajib dipilih untuk transaksi baru '
+                    'dan sebelum dokumen ditandai Sudah Diambil.'
             })
 
         # 2️⃣ karyawan_penerima ada → set snapshot nama
