@@ -128,9 +128,9 @@ class DokumenMasukAdmin(admin.ModelAdmin):
     form = DokumenMasukForm
     list_display = ('tanggal_terima', 'kategori', 'pengirim', 'nama_penerima', 'status', 'indikator_pengambilan', 'foto_thumbnail')
     search_fields = ('pengirim', 'nama_penerima')
-    autocomplete_fields = ('pt_pengirim',)
-    fields = ('kategori', 'jenis_pengirim', 'pt_pengirim', 'pengirim', 'nama_penerima', 'foto_barang', 'status', 'dob_pengambil', 'tanggal_diambil')
-    readonly_fields = ('tanggal_diambil',)
+    autocomplete_fields = ('pt_pengirim', 'karyawan_penerima')
+    fields = ('kategori', 'jenis_pengirim', 'pt_pengirim', 'pengirim', 'karyawan_penerima', 'nama_penerima', 'foto_barang', 'status', 'dob_pengambil', 'tanggal_diambil')
+    readonly_fields = ('tanggal_diambil', 'nama_penerima')
     list_filter = ('status', 'kategori', 'tanggal_terima', TerlambatDiambilFilter)
     ordering = ('-id',)
     inlines = (RiwayatMasukInline,)
@@ -162,9 +162,6 @@ class DokumenMasukAdmin(admin.ModelAdmin):
             formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
             formfield.help_text = mark_safe('Pilih <b>PT / Instansi</b> untuk memilih dari Data Supplier dengan pencarian, atau <b>Non-PT / Perseorangan</b> untuk mengetik nama pengirim manual.')
             return formfield
-        if db_field.name == 'nama_penerima':
-            karyawan_list = list(Karyawan.objects.filter(aktif=True).order_by('nama_lengkap'))
-            return forms.CharField(label=db_field.verbose_name, required=True, widget=KaryawanDatalistWidget(karyawan_list, attrs={'style': 'width: 350px;', 'list': 'id_nama_penerima-list', 'autocomplete': 'off'}))
         if db_field.name == 'pengirim':
             kwargs['required'] = False
             kwargs['widget'] = TextInput(attrs={'autocomplete': 'off', 'id': 'id_pengirim'})

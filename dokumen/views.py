@@ -42,7 +42,7 @@ def build_document_context(karyawan, *, selesai=False):
 
     if selesai:
         dokumen_masuk = DokumenMasuk.objects.filter(
-            nama_penerima=karyawan.nama_lengkap,
+            karyawan_penerima=karyawan,
             status='Sudah Diambil',
             tanggal_terima__gte=batas_riwayat,
         )
@@ -53,7 +53,7 @@ def build_document_context(karyawan, *, selesai=False):
         )
     else:
         dokumen_masuk = DokumenMasuk.objects.filter(
-            nama_penerima=karyawan.nama_lengkap,
+            karyawan_penerima=karyawan,
             status='Di Resepsionis',
         )
         dokumen_keluar = DokumenKeluar.objects.filter(

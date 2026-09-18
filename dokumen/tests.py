@@ -29,7 +29,7 @@ class DokumenMasukTest(TestCase):
             kategori='Paket Pribadi',
             jenis_pengirim='Non-PT',
             pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap,
+            karyawan_penerima=self.karyawan,
             status='Sudah Diambil',
             dob_pengambil=self.karyawan.tanggal_lahir,
         )
@@ -40,7 +40,7 @@ class DokumenMasukTest(TestCase):
     def test_status_sudah_diambil_tanpa_dob_ditolak(self):
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Sudah Diambil',
+            karyawan_penerima=self.karyawan, status='Sudah Diambil',
         )
         with self.assertRaises(Exception):
             dokumen.full_clean()
@@ -48,7 +48,7 @@ class DokumenMasukTest(TestCase):
     def test_status_sudah_diambil_dengan_dob_salah_ditolak(self):
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Sudah Diambil',
+            karyawan_penerima=self.karyawan, status='Sudah Diambil',
             dob_pengambil=date(1999, 5, 20),
         )
         with self.assertRaises(Exception):
@@ -58,7 +58,7 @@ class DokumenMasukTest(TestCase):
         waktu_awal = timezone.now()
         dokumen = DokumenMasuk.objects.create(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Sudah Diambil',
+            karyawan_penerima=self.karyawan, status='Sudah Diambil',
             dob_pengambil=self.karyawan.tanggal_lahir,
         )
         dokumen.tanggal_diambil = waktu_awal
@@ -71,16 +71,16 @@ class DokumenMasukTest(TestCase):
     def test_status_di_resepsionis_tidak_memiliki_waktu_pengambilan(self):
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Di Resepsionis',
+            karyawan_penerima=self.karyawan, status='Di Resepsionis',
         )
         dokumen.full_clean()
         dokumen.save()
         self.assertIsNone(dokumen.tanggal_diambil)
 
-    def test_nama_penerima_tidak_terdaftar_ditolak(self):
+    def test_karyawan_penerima_kosong_ditolak(self):
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima='Nama Ngawur', status='Di Resepsionis',
+            karyawan_penerima=None, status='Di Resepsionis',
         )
         with self.assertRaises(Exception):
             dokumen.full_clean()
@@ -90,7 +90,7 @@ class DokumenMasukTest(TestCase):
         self.karyawan.save(update_fields=['aktif'])
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Di Resepsionis',
+            karyawan_penerima=self.karyawan, status='Di Resepsionis',
         )
         with self.assertRaises(ValidationError):
             dokumen.full_clean()
@@ -98,12 +98,32 @@ class DokumenMasukTest(TestCase):
     def test_dokumen_lama_tetap_bisa_diedit_setelah_karyawan_nonaktif(self):
         dokumen = DokumenMasuk.objects.create(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Di Resepsionis',
+            karyawan_penerima=self.karyawan, status='Di Resepsionis',
         )
         self.karyawan.aktif = False
         self.karyawan.save(update_fields=['aktif'])
         dokumen.pengirim = 'Andi diperbarui'
         dokumen.full_clean()
+
+    def test_nama_kembar_dengan_dob_berbeda(self):
+        karyawan_2 = Karyawan.objects.create(
+            kode_karyawan='EMP002',
+            nama_lengkap='Budi Santoso',
+            jabatan='Manager',
+            tanggal_lahir=date(1995, 5, 5),
+        )
+        dokumen = DokumenMasuk.objects.create(
+            kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
+            karyawan_penerima=karyawan_2, status='Di Resepsionis',
+        )
+        
+        dokumen.status = 'Sudah Diambil'
+        dokumen.dob_pengambil = date(1995, 5, 5)
+        dokumen.full_clean()
+        
+        dokumen.dob_pengambil = date(2000, 1, 15)
+        with self.assertRaises(ValidationError):
+            dokumen.full_clean()
 
 
 class DokumenKeluarTest(TestCase):
@@ -192,7 +212,7 @@ class StatusHistoryTest(TestCase):
         admin_model = DokumenMasukAdmin(DokumenMasuk, admin.site)
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Di Resepsionis',
+            karyawan_penerima=self.karyawan, status='Di Resepsionis',
         )
         admin_model.save_model(request, dokumen, None, False)
         dokumen.status = 'Sudah Diambil'
@@ -209,7 +229,7 @@ class StatusHistoryTest(TestCase):
         admin_model = DokumenMasukAdmin(DokumenMasuk, admin.site)
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            nama_penerima=self.karyawan.nama_lengkap, status='Di Resepsionis',
+            karyawan_penerima=self.karyawan, status='Di Resepsionis',
         )
         admin_model.save_model(request, dokumen, None, False)
         self.assertEqual(dokumen.riwayat_status.count(), 1)

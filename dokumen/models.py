@@ -71,7 +71,15 @@ class DokumenMasuk(models.Model):
         verbose_name="PT / Instansi Pengirim"
     )
     pengirim = models.CharField(max_length=255, verbose_name="Nama Pengirim")
-    nama_penerima = models.CharField(max_length=255, verbose_name="Nama Penerima")
+    karyawan_penerima = models.ForeignKey(
+        Karyawan,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        related_name='dokumen_masuk',
+        verbose_name='Karyawan Penerima',
+    )
+    nama_penerima = models.CharField(max_length=255, blank=True, verbose_name="Nama Penerima")
     foto_barang = models.ImageField(upload_to='foto_barang/', blank=True, null=True)
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Di Resepsionis')
     dob_pengambil = models.DateField(
@@ -100,26 +108,23 @@ class DokumenMasuk(models.Model):
     def clean(self):
         super().clean()
 
-        if not self.nama_penerima or not self.nama_penerima.strip():
+        if not self.karyawan_penerima:
             raise ValidationError({
-                'nama_penerima': 'Nama penerima wajib diisi.'
+                'karyawan_penerima': 'Karyawan Penerima wajib dipilih.'
             })
 
-        nama_penerima = self.nama_penerima.strip()
-        karyawan_cocok = Karyawan.objects.filter(
-            nama_lengkap__iexact=nama_penerima
-        ).first()
+        self.nama_penerima = self.karyawan_penerima.nama_lengkap
 
         if self.pk:
             data_lama = DokumenMasuk.objects.get(pk=self.pk)
-            nama_lama = (data_lama.nama_penerima or '').strip()
-            nama_tidak_diubah = nama_lama.casefold() == nama_penerima.casefold()
+            karyawan_lama = data_lama.karyawan_penerima
+            karyawan_tidak_diubah = (karyawan_lama == self.karyawan_penerima)
         else:
-            nama_tidak_diubah = False
+            karyawan_tidak_diubah = False
 
-        if not karyawan_cocok or (not karyawan_cocok.aktif and not nama_tidak_diubah):
+        if not self.karyawan_penerima.aktif and not karyawan_tidak_diubah:
             raise ValidationError({
-                'nama_penerima': 'Nama penerima harus sesuai dengan data karyawan yang masih aktif.'
+                'karyawan_penerima': 'Karyawan penerima harus sesuai dengan data karyawan yang masih aktif.'
             })
 
         if self.status == 'Sudah Diambil':
@@ -128,7 +133,7 @@ class DokumenMasuk(models.Model):
                     'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
                 })
 
-            if karyawan_cocok.tanggal_lahir != self.dob_pengambil:
+            if self.karyawan_penerima.tanggal_lahir != self.dob_pengambil:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal lahir tidak sesuai dengan data karyawan penerima.'
                 })
