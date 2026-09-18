@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('dokumen', '0016_alter_dokumenkeluar_status'),
+        ('dokumen', '0017_riwayat_status_dokumen'),
     ]
 
     operations = [

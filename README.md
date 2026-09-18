@@ -1,113 +1,167 @@
-# Sistem Manajemen & Pelacakan Dokumen Internal - PT USTP
+# Sistem Manajemen & Pelacakan Dokumen & Paket Internal - PT USTP
 
-Sistem informasi manajemen dan pelacakan (*tracking*) dokumen fisik internal berbasis **Django** yang dirancang untuk divisi resepsionis/administrasi serta seluruh karyawan PT USTP. Sistem ini mengintegrasikan portal pelacakan mandiri (*self-service*) untuk karyawan dengan dasbor operasional terpusat untuk resepsionis.
+Sistem informasi manajemen dan pelacakan (*tracking*) dokumen fisik dan paket kantor berbasis **Django** yang dirancang untuk divisi resepsionis/administrasi serta seluruh karyawan PT USTP. Sistem ini mengintegrasikan portal pelacakan mandiri (*self-service*) untuk karyawan dengan dasbor operasional terpusat untuk resepsionis berbasis Django Admin.
+
+Repository: `lmaobilekpov/magang-ustp` (Branch: `main`)
 
 ---
 
 ## 📌 Status Progres Proyek
 
-Aplikasi telah menyelesaikan tahap penguatan logika bisnis inti (*Business Logic Hardening*), keandalan konkurensi data, dan standarisasi kode (*clean code*). Sistem kini dilengkapi dengan **14 skenario automated unit tests** (100% lulus), transaksi atomik pada penomoran resi otomatis, mekanisme disambiguasi nama karyawan dengan 4 digit NIK, serta validasi integritas data multi-entitas yang ketat.
+Aplikasi telah menyelesaikan tahap pembaruan arsitektur portal karyawan, perkuatan logika bisnis, audit trail riwayat status, dan pengujian menyeluruh:
+- **22 Skenario Automated Unit Tests (100% Lulus)** mencakup validasi dokumen masuk, dokumen keluar, pencatatan riwayat status, dan portal karyawan.
+- **Pemisahan Dasbor Portal Karyawan**: Halaman verifikasi mandiri (`/`), Dasbor Dokumen Aktif (`/dokumen-aktif/`), dan Dasbor Riwayat Selesai (`/riwayat/`).
+- **Timeline Status Dokumen**: Visualisasi linimasa status dengan stempel waktu dan identitas staf/petugas pengubah status.
+- **Audit Trail Riwayat Status**: Model audit khusus (`RiwayatStatusDokumenMasuk` & `RiwayatStatusDokumenKeluar`) yang mencatat setiap transisi status dan user pengubah.
+- **Alur Status Dokumen Keluar Satu Arah**: Memastikan dokumen keluar mematuhi alur transisi baku (*Menunggu Kurir → Sudah Diserahkan ke JNE → Paket Kembali*).
+- **Penomoran Resi Internal Atomik**: Pembuatan nomor resi harian otomatis (`OUT-YYYYMMDD-001`) terlindung dari *race condition* melalui `transaction.atomic()` dan mekanisme percobaan ulang (*retry loop*).
+- **Deteksi Keterlambatan Pengambilan Paket**: Properti model dan filter admin khusus untuk paket masuk yang belum diambil lebih dari 3 hari.
+- **Tampilan Admin Rapi**: Penataan stylesheet khusus (`admin_custom.css`) untuk menghilangkan duplikasi label bawaan Django Admin dan merapikan spasi tabel inline.
 
 ---
 
-## ✨ Fitur & Kemajuan yang Telah Diimplementasikan
+## ✨ Fitur & Logika Bisnis yang Telah Diimplementasikan
 
-### 1. 🌐 Portal Pelacakan Mandiri Karyawan (`/`)
-- **Pelacakan Dokumen Mandiri (Self-Service):** Karyawan dapat melacak status surat/paket yang masuk maupun paket/dokumen yang dikirim tanpa perlu mengonfirmasi manual ke meja resepsionis.
-- **Autentikasi Dua Faktor Sederhana (2-Factor Verification):** Pencarian riwayat dokumen dilindungi dengan verifikasi ganda: **NIK** dan **Tanggal Lahir** yang divalidasi langsung terhadap Master Data Karyawan.
-- **Pencegahan Kebocoran Data (Privacy & Anti-Caching):**
-  - **Pola PRG (*Post/Redirect/Get*):** Menggunakan penyimpanan sesi sekali pakai (*one-time flash session*) sehingga data pelacakan otomatis hilang saat halaman di-*refresh*, mencegah resubmisi form yang tidak disengaja.
-  - **Header Anti-Cache Ketat:** Mengirim header HTTP `Cache-Control: no-store, no-cache, must-revalidate` untuk mencegah browser menyimpan salinan data sensitif karyawan di riwayat *cache*.
-  - **Auto-Purge DOM:** Skrip *client-side* mendeteksi event `pagehide` dan `pageshow` untuk segera membersihkan tabel hasil pelacakan ketika tab ditutup atau dibuka kembali dari histori peramban.
-- **Tampilan Riwayat Responsif:**
-  - **Dokumen Masuk:** Menampilkan informasi kategori, tanggal diterima, pengirim, status (*Di Resepsionis* / *Sudah Diambil*), dan stempel waktu pengambilan barang.
-  - **Dokumen Keluar:** Menampilkan tautan langsung pelacakan resi ekspedisi (JNE) dan status penyerahan.
-  - Tabel dilengkapi pembungkus *horizontal scroll* yang nyaman diakses lewat perangkat seluler (*smartphone*).
+### 1. 🌐 Portal Pelacakan Mandiri Karyawan
+
+Portal karyawan dirancang aman, responsif, dan mudah diakses tanpa memerlukan pembuatan akun terpisah bagi setiap karyawan.
+
+- **Verifikasi Mandiri Berbasis Tanggal Lahir (`/`):**
+  - Karyawan cukup memasukkan **Tanggal Lahir** untuk melihat daftar dokumen miliknya.
+  - **Penanganan Ambiguitas Tanggal Lahir:** Jika suatu tanggal lahir dimiliki oleh lebih dari satu karyawan di master data, sistem secara aman menolak akses dan meminta karyawan menghubungi resepsionis secara langsung.
+- **Pemisahan Halaman Dokumen Aktif vs Riwayat Selesai:**
+  - **Dokumen Aktif (`/dokumen-aktif/`):** Menampilkan surat dan paket yang masih berada dalam penanganan resepsionis (*Dokumen Masuk: 'Di Resepsionis'*; *Dokumen Keluar: 'Menunggu Kurir'* dan *'Sudah Diserahkan ke JNE'*).
+  - **Riwayat Selesai (`/riwayat/`):** Menampilkan arsip dokumen yang telah selesai (*Dokumen Masuk: 'Sudah Diambil'*; *Dokumen Keluar: 'Paket Kembali'*). Dibatasi dengan masa retensi default 365 hari (`RIWAYAT_PORTAL_HARI = 365`).
+- **Timeline Status Interaktif:**
+  - Setiap kartu dokumen menyajikan linimasa visual transisi status dari status awal hingga status terkini.
+  - Memuat stempel waktu perubahan dan nama staf yang memproses dokumen.
+- **Tautan Pelacakan Ekspedisi Cerdas:**
+  - Tautan URL Resi JNE hanya ditampilkan ketika paket berstatus *Sudah Diserahkan ke JNE*.
+  - Jika paket berstatus *Paket Kembali*, tautan pelacakan ekspedisi otomatis disembunyikan.
+- **Keamanan Sesi & Perlindungan Anti-Cache:**
+  - Sesi verifikasi dicatat secara aman dalam sesi server (`request.session['karyawan_terverifikasi']`).
+  - Mengirimkan header anti-cache ketat pada setiap respons portal (`Cache-Control: no-store, no-cache, must-revalidate, max-age=0`, `Pragma: no-cache`, `Expires: 0`).
+  - Rute **Keluar Sesi (`/keluar/`)** untuk menghapus sesi terverifikasi kapan saja.
 
 ---
 
 ### 2. 🗂️ Master Data Terpusat
 
 #### A. Master Data Karyawan (`Karyawan`)
-- **Sumber Tunggal Kebenaran (*Single Source of Truth*):** Pengelolaan NIK unik, Nama Lengkap, dan Tanggal Lahir karyawan USTP.
-- **Relasi & Integrasi Sistem:** Menjadi basis acuan validasi otomatis pada input resepsionis dan autentikasi pelacakan pada portal karyawan.
+- **Struktur Kolom:** `kode_karyawan`, `nama_lengkap`, `jabatan`, `tanggal_lahir`, dan flag `aktif`.
+- **Sumber Data:** Diimpor dari master data Excel internal perusahaan.
+- **Validasi Keaktifan:** Karyawan non-aktif (`aktif=False`) tidak dapat dipilih untuk penerimaan atau pengiriman dokumen baru, namun integritas data dokumen lama tetap dipertahankan.
+- **Input Disambiguasi pada Admin:** Menggunakan widget custom `KaryawanDatalistWidget` dengan format pilihan `Nama Lengkap` dan label petunjuk `Kode Karyawan — Jabatan`.
 
-#### B. Master Data Rekanan PT / Instansi (`DataPT`)
-- **Katalog Rekanan & Instansi Pengirim:** Pengelolaan daftar nama PT/instansi pihak ketiga yang sering mengirim dokumen ke kantor.
-- **Relasi Dokumen Masuk:** Mempercepat pengisian data resepsionis dan menjaga konsistensi format penulisan nama instansi pengirim.
+#### B. Master Data Supplier (`Supplier`)
+- **Struktur Kolom:** `kode_supplier` dan `nama_supplier`.
+- **Penyimpanan Lokal Andal (*Local Copy*):** Menyimpan salinan data rekanan/supplier di database lokal agar operasional resepsionis tetap berjalan meskipun sistem API/database pusat sedang tidak dapat diakses.
+- **Pencarian Autocomplete Cepat:** Menggunakan fitur `autocomplete_fields` pada Django Admin untuk memudahkan pencarian instan di antara ribuan rekanan/supplier tanpa memperlambat loading browser.
 
 ---
 
 ### 3. 📦 Manajemen Dokumen Masuk (`DokumenMasuk`)
-- **Pencatatan Dokumen & Paket:**
-  - **Kategori Terstandarisasi:** *Surat Resmi* dan *Paket Pribadi*.
-  - **Fleksibilitas Pengirim:** Pilihan jenis pengirim antara **PT / Instansi** (memilih dari master `DataPT`) atau **Non-PT / Perseorangan** (input manual nama perseorangan).
-  - **Dynamic Admin Form:** Form otomatis menyesuaikan tampilan input PT atau nama manual sesuai opsi yang dipilih, dilengkapi proteksi fallback di sisi backend.
-- **Disambiguasi & Sinkronisasi 2-Arah Penerima:**
-  - Dropdown **Nama Penerima** menampilkan format `Nama Lengkap — 4 digit terakhir NIK` (contoh: `Budi Santoso — 5678`) untuk menghilangkan ambiguitas jika ada karyawan bernama sama.
-  - Sinkronisasi otomatis 2-arah antara dropdown Nama dan dropdown NIK (memilih Nama otomatis mengisi NIK lengkap, dan sebaliknya).
-- **Validasi Serah Terima Berlapis (`clean()`):**
-  - Memverifikasi bahwa NIK dan Nama penerima valid dan terdaftar di master data karyawan.
-  - Saat status diubah menjadi *Sudah Diambil*, resepsionis wajib menginput **Tanggal Lahir Pengambil**. Sistem akan mencocokkan tanggal lahir tersebut dengan database sebelum memperbolehkan penyimpanan.
-- **Otomatisasi Waktu Pengambilan Barang (`tanggal_diambil`):**
-  - Tanggal dan jam pengambilan barang dicatat secara otomatis oleh sistem (`timezone.now()`) saat status berubah menjadi *Sudah Diambil*.
-  - Riwayat waktu pengambilan dipertahankan jika data diedit kembali.
-  - Jika status dikembalikan ke *Di Resepsionis*, waktu pengambilan otomatis direset.
-  - Field diatur menjadi *read-only* pada Dasbor Admin untuk menjaga integritas audit.
-- **Upload & Pratinjau Foto:** Upload bukti fisik paket/surat dengan *thumbnail* pratinjau langsung pada daftar tabel admin.
+
+- **Kategori Dokumen:** Terstandarisasi menjadi `Surat Resmi` dan `Paket Pribadi`.
+- **Fleksibilitas Jenis Pengirim:**
+  - **PT / Instansi:** Dipilih dari Master Data `Supplier` dengan pencarian autocomplete. Form admin otomatis memetakan nama supplier ke data pengirim.
+  - **Non-PT / Perseorangan:** Input nama pengirim secara manual.
+  - **Form Dinamis:** Skrip `static/js/dokumen_masuk_form.js` mengatur visibilitas field supplier dan input manual secara instan sesuai pilihan jenis pengirim.
+- **Validasi Penerima:** Nama penerima divalidasi harus cocok dengan data karyawan yang masih aktif.
+- **Verifikasi Pengambilan Barang:**
+  - Pengambilan barang dapat dilakukan langsung oleh karyawan yang bersangkutan atau diwakilkan kepada rekan kerja dengan syarat menyebutkan **Tanggal Lahir (DOB)** karyawan pemilik barang.
+  - Resepsionis wajib menginput tanggal lahir pengambil pada field `dob_pengambil` saat mengubah status menjadi *Sudah Diambil*.
+- **Pencatatan Otomatis Waktu Pengambilan (`tanggal_diambil`):**
+  - Stempel waktu pengambilan dicatat otomatis oleh sistem (`timezone.now()`) ketika status berubah ke *Sudah Diambil*.
+  - Nilai waktu pengambilan dipertahankan jika dokumen diedit kembali di masa mendatang, dan direset jika status dikembalikan ke *Di Resepsionis*.
+- **Peringatan Paket Terlambat Diambil:**
+  - Properti `terlambat_diambil` mendeteksi paket berstatus *Di Resepsionis* yang belum diambil lebih dari 3 hari.
+  - Dilengkapi filter khusus `TerlambatDiambilFilter` pada Django Admin serta indikator visual berwarna pada tabel resepsionis (`⚠ Terlambat` / `✓ Selesai`).
+- **Audit Trail & Foto:**
+  - Setiap perubahan status dicatat dalam `RiwayatStatusDokumenMasuk` dan disajikan pada tabel inline.
+  - Unggahan foto fisik paket/surat opsional (`foto_barang/`) dengan pratinjau thumbnail di tabel admin.
 
 ---
 
 ### 4. 📤 Manajemen Dokumen Keluar (`DokumenKeluar`)
-- **Penomoran Resi Internal Otomatis & Transaksi Atomik:**
-  - Resi internal berformat `OUT-YYYYMMDD-001`, `OUT-YYYYMMDD-002`, dst., dibuat otomatis berdasarkan tanggal penyerahan ke resepsionis dan berurutan setiap harinya.
-  - Dilengkapi proteksi **transaksi atomik (`transaction.atomic()`)** dan mekanisme *retry loop* (hingga 5 kali percobaan) untuk mencegah tabrakan penomoran (*race condition / duplicate key*) pada konkurensi penyimpanan.
-- **Disambiguasi & Sinkronisasi Pengirim:**
-  - Dropdown Nama Pengirim menampilkan label `Nama Lengkap — 4 digit terakhir NIK` dan tersinkronisasi otomatis dengan NIK Pengirim.
-  - Validasi kecocokan NIK dan Nama Pengirim terhadap master data.
-- **Standarisasi Status & Validasi Ekspedisi:**
-  - Pilihan status: *Menunggu Kurir* dan *Sudah Diserahkan ke JNE*.
-  - **Validasi Resi Ekspedisi:** Sistem mewajibkan pengisian URL Resi JNE jika status diubah menjadi *Sudah Diserahkan ke JNE*.
-  - Field URL Resi JNE dilengkapi pencegahan *autocomplete browser* (`autocomplete="off"`).
-- **Dokumentasi Fisik:** Penyimpanan deskripsi dokumen serta unggahan foto fisik sebelum paket diserahkan ke kurir.
+
+- **Validasi Pengirim:** Nama pengirim wajib terdaftar dan aktif di Master Data Karyawan.
+- **Penomoran Resi Internal Otomatis:**
+  - Format standar: `OUT-YYYYMMDD-001`, `OUT-YYYYMMDD-002`, dst.
+  - Nomor urut selalu dimulai kembali dari `001` setiap pergantian hari.
+  - Dilindungi blok transaksi atomik (`transaction.atomic()`) dengan *retry loop* (hingga 5 kali) untuk mencegah duplikasi nomor resi pada akses bersamaan.
+- **Alur Status Satu Arah (One-Way Status Flow):**
+  - Alur status yang diizinkan: `Menunggu Kurir` → `Sudah Diserahkan ke JNE` → `Paket Kembali`.
+  - Sistem menolak perubahan status yang melompati tahapan (misalnya membuat dokumen baru langsung berstatus *Paket Kembali*).
+- **Integrasi Ekspedisi (JNE):**
+  - Input tautan URL Resi JNE wajib diisi ketika status diubah menjadi *Sudah Diserahkan ke JNE* atau *Paket Kembali*.
+  - Resi JNE dapat diklik langsung oleh karyawan dari portal saat status *Sudah Diserahkan ke JNE*.
+- **Penanganan Paket Retur / Kembali:**
+  - Dokumen yang gagal terkirim dan kembali ke kantor ditandai statusnya menjadi `Paket Kembali`.
+  - Jika paket hendak dikirim ulang, sesuai SOP dibuatkan transaksi dokumen keluar baru (tidak menimpa transaksi lama).
+- **Audit Trail & Foto:**
+  - Perubahan status tercatat secara otomatis pada `RiwayatStatusDokumenKeluar`.
+  - Unggahan foto fisik surat/resi pengiriman opsional (`foto_dokumen/`).
 
 ---
 
 ### 5. 🎛️ Dasbor Resepsionis & Kustomisasi Django Admin
-- **Branding Perusahaan:** Penyesuaian nama header dasbor (*"Dasbor Resepsionis USTP"*), judul situs (*"Admin USTP"*), dan indeks administrasi.
-- **Filter & Pencarian Lintas Entitas:** Filter status, kategori, dan tanggal terima, serta pencarian instan berbasis NIK, nama pengirim/penerima, dan nomor resi internal.
-- **Dukungan Widget Native:** Input tanggal menggunakan kalender *native* HTML5 (`type="date"`).
-- **Format Parsing Waktu ISO:** Dukungan input format waktu *native* browser tanpa gangguan konflik lokalisasi sistem.
-- **Lokalisasi Waktu:** Berjalan di zona waktu **WIB (`Asia/Jakarta`)** dengan format antarmuka yang bersih.
+
+- **Branding USTP:** Header dasbor disesuaikan menjadi *"Dasbor Resepsionis USTP"* dan judul portal *"Admin USTP"*. Group bawaan dinonaktifkan (`unregister(Group)`) demi kesederhanaan operasional.
+- **Kustomisasi Tampilan Rapi (`static/css/admin_custom.css`):**
+  - Menyembunyikan string objek bawaan Django yang redundan di baris `TabularInline`.
+  - Merapikan padding dan line-height baris riwayat status agar kompak dan nyaman dipandang.
+- **Form Interaktif (`static/js/dokumen_masuk_form.js`):** Menampilkan input supplier atau input manual pengirim secara dinamis tanpa perlu me-refresh halaman.
+- **Keamanan Hak Akses Inline:** Komponen riwayat perubahan status diatur murni sebagai tampilan baca (*view-only*) tanpa izin penambahan, pengubahan, atau penghapusan manual.
+- **Lokalisasi Waktu:** Berjalan di zona waktu **WIB (`Asia/Jakarta`)** dengan widget pemilih tanggal kalender HTML5 native.
 
 ---
 
 ### 6. 🧪 Pengujian Otomatis (Automated Unit Tests)
-Sistem memiliki test suite komprehensif pada `dokumen/tests.py` yang mencakup **14 pengujian otomatis**:
-- **`DokumenMasukTest` (6 tes):**
-  - Pengisian otomatis stempel waktu saat status *Sudah Diambil*.
-  - Penolakan dokumen jika status *Sudah Diambil* tanpa DOB pengambil.
-  - Pemeliharaan stempel waktu lama saat status tetap *Sudah Diambil*.
-  - Penolakan NIK penerima yang tidak terdaftar di data HRD.
-  - Penolakan nama penerima yang tidak cocok dengan NIK.
-  - Pemastian dokumen berstatus *Di Resepsionis* tidak memiliki waktu pengambilan.
-- **`DokumenKeluarTest` (6 tes):**
-  - Pembuatan otomatis nomor resi internal harian format `OUT-YYYYMMDD-001`.
-  - Penolakan NIK pengirim yang tidak terdaftar di master data.
-  - Penolakan nama pengirim yang tidak cocok dengan NIK.
-  - Penolakan status *Sudah Diserahkan ke JNE* jika URL resi belum diisi.
-  - Urutan penomoran resi bertambah secara konsisten (001, 002, 003).
-  - Reset nomor urut kembali ke `001` saat berganti hari.
-- **`PortalKaryawanTest` (2 tes):**
-  - Verifikasi kombinasi NIK dan DOB yang benar berhasil menampilkan data pelacakan.
-  - Verifikasi penolakan autentikasi jika DOB yang diinput tidak cocok.
+
+Sistem dilengkapi test suite lengkap di `dokumen/tests.py` dengan total **22 skenario pengujian otomatis**:
+
+1. **`DokumenMasukTest` (8 Skenario):**
+   - Otomatisasi pencatatan waktu pengambilan saat status *Sudah Diambil*.
+   - Penolakan status *Sudah Diambil* jika tanggal lahir pengambil tidak diisi.
+   - Penolakan status *Sudah Diambil* jika tanggal lahir pengambil salah / tidak cocok.
+   - Stempel waktu pengambilan lama dipertahankan saat data diedit ulang.
+   - Dokumen berstatus *Di Resepsionis* dipastikan tidak memiliki waktu pengambilan.
+   - Penolakan nama penerima yang tidak terdaftar di master data.
+   - Penolakan nama penerima yang berstatus karyawan non-aktif pada transaksi baru.
+   - Pemastian dokumen lama tetap dapat diedit meskipun karyawan penerima telah berstatus non-aktif.
+
+2. **`DokumenKeluarTest` (8 Skenario):**
+   - Pembuatan nomor resi internal otomatis dengan format `OUT-YYYYMMDD-001`.
+   - Penolakan status *Sudah Diserahkan ke JNE* jika URL resi ekspedisi kosong.
+   - Urutan penomoran resi internal bertambah secara konsisten (`001`, `002`, `003`).
+   - Reset nomor urut resi kembali ke `001` saat berganti tanggal.
+   - Validasi nama pengirim terdaftar berhasil disimpan.
+   - Penolakan nama pengirim yang tidak terdaftar di master data.
+   - Penolakan nama pengirim yang berstatus karyawan non-aktif pada transaksi baru.
+   - Penolakan pembuatan dokumen baru yang langsung berstatus *Paket Kembali*.
+
+3. **`StatusHistoryTest` (3 Skenario):**
+   - Pencatatan status awal dan histori transisi status pada Dokumen Masuk.
+   - Pencegahan penambahan riwayat jika status dokumen masuk tidak mengalami perubahan.
+   - Pencatatan identitas pengguna/staf yang mengubah status pada Dokumen Keluar.
+
+4. **`PortalKaryawanTest` (3 Skenario):**
+   - Keberhasilan verifikasi identitas menggunakan tanggal lahir yang valid.
+   - Penolakan verifikasi jika tanggal lahir tidak ditemukan di master data.
+   - Penolakan verifikasi jika terdapat lebih dari satu karyawan dengan tanggal lahir yang sama.
 
 ---
 
-### 7. 🔒 Keamanan & Praktik Terbaik (Best Practices)
-- **Kredensial Aman:** `SECRET_KEY` Django dipindahkan ke *Environment Variable* (`DJANGO_SECRET_KEY`) dan tidak disimpan di repositori.
-- **Manajemen Media Terisolasi:** Direktori `media/` dipisahkan secara terstruktur dan terdaftar dalam `.gitignore`.
-- **Clean Codebase:** Kode program telah dibersihkan dari komentar-komentar percakapan/informal sehingga lebih profesional dan siap produksi.
+### 7. 🔒 Keamanan, Konfigurasi & Batasan Desain
+
+- **Keamanan Kredensial:** Menggunakan environment variable `DJANGO_SECRET_KEY` sehingga tidak ada kunci rahasia yang tersimpan di repositori publik/git.
+- **Isolasi Berkas Pengguna:** Direktori `media/` dipisahkan secara terstruktur dan diabaikan oleh git melalui `.gitignore`.
+- **Batasan Ruang Lingkup & Desain MVP:**
+  - Sistem difokuskan pada alur kerja dokumen fisik dan paket internal resepsionis.
+  - Tidak menggunakan notifikasi pihak ketiga (seperti WhatsApp API atau email blast) pada tahap MVP.
+  - Integrasi ekspedisi kurir mengandalkan tautan URL pelacakan langsung (tanpa scraping/API kurir pihak ketiga).
+  - Verifikasi pengambilan paket cukup mengandalkan validasi tanggal lahir pemilik barang tanpa memerlukan entitas perwakilan terpisah.
 
 ---
 
@@ -115,29 +169,36 @@ Sistem memiliki test suite komprehensif pada `dokumen/tests.py` yang mencakup **
 
 ```text
 magang-ustp/
-├── dokumen/                  # Aplikasi utama manajemen dokumen
-│   ├── admin.py             # Konfigurasi Admin, form sync 2-arah, dynamic script
-│   ├── apps.py              # Konfigurasi metadata aplikasi dokumen
-│   ├── models.py            # Model Karyawan, DataPT, DokumenMasuk, DokumenKeluar
-│   ├── tests.py             # 14 skenario automated unit tests
-│   ├── views.py             # View Portal Karyawan, PRG pattern, cache-control
-│   └── migrations/          # Riwayat migrasi database skema (0001 - 0011)
-├── static/                  # File statis (CSS, JavaScript, Aset gambar)
-│   └── img/                 # Logo perusahaan & ikon
-├── media/                   # Direktori upload media pengguna (diabaikan git)
+├── dokumen/                  # Aplikasi utama manajemen dokumen & paket
+│   ├── admin.py             # Konfigurasi Admin, form custom, inline riwayat, filter
+│   ├── apps.py              # Konfigurasi metadata aplikasi
+│   ├── models.py            # Model Karyawan, Supplier, DokumenMasuk, DokumenKeluar, RiwayatStatus
+│   ├── tests.py             # 22 skenario automated unit tests
+│   ├── views.py             # View Portal Karyawan, verifikasi DOB, dokumen aktif, riwayat
+│   └── migrations/          # Riwayat migrasi skema database
+├── static/                  # Berkas statis
+│   ├── css/
+│   │   └── admin_custom.css # CSS kustom perapian inline Django Admin
+│   ├── js/
+│   │   └── dokumen_masuk_form.js # Handler dinamis form pengirim PT vs Non-PT
+│   └── img/                 # Logo & aset visual
+├── media/                   # Direktori upload media (diabaikan git)
 │   ├── foto_barang/         # Bukti foto dokumen/paket masuk
 │   └── foto_dokumen/        # Bukti foto dokumen keluar
-├── templates/               # Berkas template HTML
-│   ├── lacak_dokumen.html   # Antarmuka responsif Portal Karyawan
-│   └── admin/               # Kustomisasi template Django Admin
+├── templates/               # Berkas template antarmuka
+│   ├── lacak_dokumen.html   # Halaman verifikasi tanggal lahir portal karyawan
+│   ├── dokumen_aktif.html   # Dasbor dokumen & paket yang sedang berjalan
+│   ├── riwayat_dokumen.html # Dasbor riwayat dokumen yang telah selesai
+│   └── admin/               # Template override Django Admin
 ├── ustp_tracking/           # Modul konfigurasi proyek Django
-│   ├── settings.py          # Konfigurasi aplikasi, env variable, media, zona waktu
-│   ├── urls.py              # Pengalamatan routing portal, admin, dan media handler
-│   └── wsgi.py              # Entry point deployment WSGI
+│   ├── settings.py          # Konfigurasi aplikasi, env variable, media, zona waktu WIB
+│   ├── urls.py              # Rute URL portal, admin, dan static/media handler
+│   └── wsgi.py              # Entry point WSGI deployment
 ├── db.sqlite3               # Database SQLite lokal
 ├── manage.py                # Utilitas CLI Django
-├── .gitignore               # Konfigurasi file yang diabaikan Git
-└── README.md                # Dokumentasi proyek
+├── PROJECT_CONTEXT.md       # Dokumentasi konteks & keputusan bisnis proyek
+├── .gitignore               # Konfigurasi berkas yang diabaikan Git
+└── README.md                # Dokumentasi utama proyek
 ```
 
 ---
@@ -146,7 +207,7 @@ magang-ustp/
 
 ### 1. Prasyarat
 - **Python 3.10+**
-- Virtual Environment (`env`) aktif
+- Virtual Environment aktif
 
 ### 2. Langkah Menjalankan
 
@@ -155,13 +216,17 @@ magang-ustp/
      ```powershell
      .\env\Scripts\activate
      ```
+   - *Command Prompt (CMD):*
+     ```cmd
+     env\Scripts\activate.bat
+     ```
    - *Bash / macOS / Linux:*
      ```bash
      source env/bin/activate
      ```
 
-2. **Atur Environment Variable `DJANGO_SECRET_KEY`:**
-   - *PowerShell (Windows):*
+2. **Atur Environment Variable `DJANGO_SECRET_KEY` (Opsional untuk Dev):**
+   - *PowerShell:*
      ```powershell
      $env:DJANGO_SECRET_KEY="kunci-rahasia-django-anda"
      ```
@@ -179,7 +244,7 @@ magang-ustp/
    python manage.py migrate
    ```
 
-4. **Jalankan Automated Tests (Opsional):**
+4. **Jalankan Automated Tests:**
    ```bash
    python manage.py test
    ```
@@ -189,8 +254,10 @@ magang-ustp/
    python manage.py runserver
    ```
 
-6. **Akses Aplikasi via Browser:**
-   - **Portal Karyawan (Pelacakan Mandiri):** `http://127.0.0.1:8000/`
+6. **Akses Antarmuka Aplikasi:**
+   - **Portal Karyawan (Verifikasi):** `http://127.0.0.1:8000/`
+   - **Dasbor Dokumen Aktif:** `http://127.0.0.1:8000/dokumen-aktif/`
+   - **Dasbor Riwayat Selesai:** `http://127.0.0.1:8000/riwayat/`
    - **Dasbor Resepsionis (Admin):** `http://127.0.0.1:8000/admin/`
 
 ---
@@ -199,30 +266,46 @@ magang-ustp/
 
 ```mermaid
 graph TD
-    subgraph Dokumen Masuk
+    subgraph "Dokumen Masuk"
         A[Surat / Paket Tiba di Resepsionis] --> B[Resepsionis Buka Dasbor Admin]
-        B --> C[Pilih Jenis: PT atau Non-PT]
-        C --> D[Pilih Penerima via Dropdown Nama - 4 Digit NIK]
-        D --> E[Simpan: Status 'Di Resepsionis']
-        E --> F{Karyawan Datang Mengambil?}
-        F -- Ya --> G[Resepsionis Minta Tanggal Lahir Karyawan]
-        G --> H[Sistem Validasi DOB ke Data Karyawan]
-        H -- Cocok --> I[Status Diubah ke 'Sudah Diambil']
-        I --> J[Sistem Catat Waktu Pengambilan Otomatis]
+        B --> C{Pilih Jenis Pengirim}
+        C -- PT / Instansi --> D[Pilih Supplier via Autocomplete]
+        C -- Non-PT --> E[Input Nama Pengirim Manual]
+        D --> F[Pilih Nama Penerima dari Data Karyawan Aktif]
+        E --> F
+        F --> G[Simpan: Status 'Di Resepsionis']
+        G --> H{Cek Waktu Pengambilan}
+        H -- "> 3 Hari Belum Diambil" --> I[Muncul Indikator '⚠ Terlambat']
+        H -- Pengambilan Barang --> J[Resepsionis Minta Tanggal Lahir Pemilik Paket]
+        J --> K{Sistem Validasi DOB ke Karyawan}
+        K -- Cocok --> L[Ubah Status: 'Sudah Diambil']
+        L --> M[Sistem Catat Waktu Pengambilan Otomatis]
+        M --> N[Catat Riwayat Perubahan Status & Operator]
     end
 
-    subgraph Portal Karyawan
-        K[Karyawan Akses Portal] --> L[Input NIK & Tanggal Lahir]
-        L --> M[Verifikasi Sukses]
-        M --> N[Tampilkan Riwayat Masuk & Keluar]
-        N --> O[Refresh / Tutup Tab: Hasil Otomatis Direset]
+    subgraph "Dokumen Keluar"
+        O[Karyawan Titipkan Dokumen Keluar] --> P[Resepsionis Input Dokumen Baru]
+        P --> Q[Pilih Pengirim dari Karyawan Aktif]
+        Q --> R[Sistem Generate Nomor Resi OUT-YYYYMMDD-001 secara Atomik]
+        R --> S[Status: 'Menunggu Kurir']
+        S --> T[Kurir JNE Melakukan Pickup Dokumen]
+        T --> U[Input URL Resi JNE & Ubah Status: 'Sudah Diserahkan ke JNE']
+        U --> V{Status Pengiriman JNE}
+        V -- Berhasil Terkirim --> W[Selesai]
+        V -- Paket Retur / Gagal Kirim --> X[Tandai Status: 'Paket Kembali']
+        X --> Y[Jika Kirim Ulang: Buat Transaksi Dokumen Keluar Baru]
     end
 
-    subgraph Dokumen Keluar
-        P[Karyawan Titip Dokumen Keluar] --> Q[Resepsionis Pilih Pengirim via Dropdown]
-        Q --> R[Sistem Auto-Generate Resi OUT-YYYYMMDD-XXX via Transaksi Atomik]
-        R --> S[Status: Menunggu Kurir]
-        S --> T[Kurir JNE Ambil Dokumen]
-        T --> U[Input URL Resi JNE & Ubah Status: Sudah Diserahkan ke JNE]
+    subgraph "Portal Pelacakan Karyawan"
+        Z[Karyawan Akses Portal /] --> AA[Input Tanggal Lahir]
+        AA --> AB{Validasi Tanggal Lahir}
+        AB -- Tidak Ditemukan --> AC[Tolak Akses]
+        AB -- Tanggal Lahir Ganda --> AD[Tolak Akses & Minta Hubungi Resepsionis]
+        AB -- Valid & Unik --> AE[Verifikasi Sukses: Sesi Aktif]
+        AE --> AF[Akses Halaman Dokumen Aktif /dokumen-aktif/]
+        AF --> AG[Lihat Surat/Paket Berjalan & Visual Timeline Status]
+        AE --> AH[Akses Halaman Riwayat Selesai /riwayat/]
+        AH --> AI[Lihat Arsip Dokumen Selesai Retensi 365 Hari]
+        AE --> AJ[Keluar Sesi /keluar/: Reset Sesi & Proteksi No-Cache]
     end
 ```

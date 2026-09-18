@@ -251,7 +251,7 @@ class PortalKaryawanTest(TestCase):
     def test_verifikasi_dob_salah_ditolak(self):
         response = self.client.post(reverse('lacak_dokumen'), {'tanggal_lahir': '1999-05-21'})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Tanggal Lahir tidak ditemukan')
+        self.assertContains(response, 'tanggal lahir tidak ditemukan')
 
     def test_verifikasi_dob_ganda_ditolak(self):
         Karyawan.objects.create(
