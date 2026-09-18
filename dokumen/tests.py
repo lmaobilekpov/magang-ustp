@@ -77,13 +77,68 @@ class DokumenMasukTest(TestCase):
         dokumen.save()
         self.assertIsNone(dokumen.tanggal_diambil)
 
-    def test_karyawan_penerima_kosong_ditolak(self):
+    def test_legacy_null_di_resepsionis_valid(self):
+        """Data lama tanpa karyawan_penerima + status Di Resepsionis harus tetap valid."""
         dokumen = DokumenMasuk(
             kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
-            karyawan_penerima=None, status='Di Resepsionis',
+            nama_penerima='Siapa Saja', karyawan_penerima=None, status='Di Resepsionis',
         )
-        with self.assertRaises(Exception):
+        dokumen.full_clean()
+
+    def test_legacy_null_sudah_diambil_invalid(self):
+        """Data lama tanpa karyawan_penerima + status Sudah Diambil harus ditolak."""
+        dokumen = DokumenMasuk(
+            kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
+            nama_penerima='Siapa Saja', karyawan_penerima=None, status='Sudah Diambil',
+            dob_pengambil=date(2000, 1, 15),
+        )
+        with self.assertRaises(ValidationError):
             dokumen.full_clean()
+
+    def test_migrasi_nama_unik_fk_terisi(self):
+        """Simulasi data migration: nama unik harus otomatis cocok ke FK."""
+        DokumenMasuk.objects.create(
+            kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
+            nama_penerima='Budi Santoso', status='Di Resepsionis',
+        )
+        doc = DokumenMasuk.objects.filter(nama_penerima='Budi Santoso', karyawan_penerima__isnull=True).first()
+        if doc:
+            matches = Karyawan.objects.filter(nama_lengkap__iexact=doc.nama_penerima)
+            if matches.count() == 1:
+                doc.karyawan_penerima = matches.first()
+                doc.save(update_fields=['karyawan_penerima'])
+        doc.refresh_from_db()
+        self.assertEqual(doc.karyawan_penerima, self.karyawan)
+
+    def test_migrasi_nama_ambigu_fk_tetap_null(self):
+        """Simulasi data migration: nama ambigu (>1 karyawan) harus tetap NULL."""
+        Karyawan.objects.create(
+            kode_karyawan='EMP099', nama_lengkap='Budi Santoso',
+            jabatan='Manager', tanggal_lahir=date(1995, 5, 5),
+        )
+        doc = DokumenMasuk.objects.create(
+            kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
+            nama_penerima='Budi Santoso', status='Di Resepsionis',
+        )
+        matches = Karyawan.objects.filter(nama_lengkap__iexact=doc.nama_penerima)
+        if matches.count() == 1:
+            doc.karyawan_penerima = matches.first()
+            doc.save(update_fields=['karyawan_penerima'])
+        doc.refresh_from_db()
+        self.assertIsNone(doc.karyawan_penerima)
+
+    def test_migrasi_nama_tidak_ditemukan_fk_tetap_null(self):
+        """Simulasi data migration: nama yang tidak cocok harus tetap NULL."""
+        doc = DokumenMasuk.objects.create(
+            kategori='Paket Pribadi', jenis_pengirim='Non-PT', pengirim='Andi',
+            nama_penerima='Nama Tidak Ada', status='Di Resepsionis',
+        )
+        matches = Karyawan.objects.filter(nama_lengkap__iexact=doc.nama_penerima)
+        if matches.count() == 1:
+            doc.karyawan_penerima = matches.first()
+            doc.save(update_fields=['karyawan_penerima'])
+        doc.refresh_from_db()
+        self.assertIsNone(doc.karyawan_penerima)
 
     def test_nama_penerima_karyawan_nonaktif_ditolak(self):
         self.karyawan.aktif = False

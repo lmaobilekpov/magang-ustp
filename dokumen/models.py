@@ -108,13 +108,21 @@ class DokumenMasuk(models.Model):
     def clean(self):
         super().clean()
 
+        # 1️⃣ Jika karyawan_penerima belum di‑set
         if not self.karyawan_penerima:
+            # a) Status *Di Resepsionis* → masih valid (legacy data)
+            if self.status == 'Di Resepsionis':
+                # Tidak perlu mengubah nama_penerima; biarkan field snapshot tetap ada.
+                return
+            # b) Status *Sudah Diambil* → wajib pilih karyawan penerima
             raise ValidationError({
-                'karyawan_penerima': 'Karyawan Penerima wajib dipilih.'
+                'karyawan_penerima': 'Karyawan Penerima wajib dipilih ketika status Sudah Diambil.'
             })
 
+        # 2️⃣ karyawan_penerima ada → set snapshot nama
         self.nama_penerima = self.karyawan_penerima.nama_lengkap
 
+        # 3️⃣ Cek keaktifan karyawan
         if self.pk:
             data_lama = DokumenMasuk.objects.get(pk=self.pk)
             karyawan_lama = data_lama.karyawan_penerima
@@ -122,17 +130,19 @@ class DokumenMasuk(models.Model):
         else:
             karyawan_tidak_diubah = False
 
+        # Transaksi baru harus memakai karyawan yang masih aktif; record lama yang sebelumnya
+        # memakai karyawan (meski kini non‑aktif) tetap boleh diedit.
         if not self.karyawan_penerima.aktif and not karyawan_tidak_diubah:
             raise ValidationError({
-                'karyawan_penerima': 'Karyawan penerima harus sesuai dengan data karyawan yang masih aktif.'
+                'karyawan_penerima': 'Karyawan penerima harus aktif untuk transaksi baru.'
             })
 
+        # 4️⃣ Validasi DOB saat pengambilan
         if self.status == 'Sudah Diambil':
             if not self.dob_pengambil:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal Lahir Pengambil wajib diisi jika status dokumen Sudah Diambil.'
                 })
-
             if self.karyawan_penerima.tanggal_lahir != self.dob_pengambil:
                 raise ValidationError({
                     'dob_pengambil': 'Tanggal lahir tidak sesuai dengan data karyawan penerima.'
