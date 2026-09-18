@@ -11,7 +11,7 @@ Repository: `lmaobilekpov/magang-ustp` (Branch: `main`)
 Aplikasi telah menyelesaikan tahap pembaruan arsitektur portal karyawan, perkuatan logika bisnis, audit trail riwayat status, dan pengujian menyeluruh:
 - **22 Skenario Automated Unit Tests (100% Lulus)** mencakup validasi dokumen masuk, dokumen keluar, pencatatan riwayat status, dan portal karyawan.
 - **Pemisahan Dasbor Portal Karyawan**: Halaman verifikasi mandiri (`/`), Dasbor Dokumen Aktif (`/dokumen-aktif/`), dan Dasbor Riwayat Selesai (`/riwayat/`).
-- **Timeline Status Dokumen**: Visualisasi linimasa status dengan stempel waktu dan identitas staf/petugas pengubah status.
+- **Timeline Status Dokumen**: Visualisasi linimasa status dengan stempel waktu perubahan status. Pada Dasbor Admin, riwayat juga mencatat identitas staf/petugas yang melakukan perubahan.
 - **Audit Trail Riwayat Status**: Model audit khusus (`RiwayatStatusDokumenMasuk` & `RiwayatStatusDokumenKeluar`) yang mencatat setiap transisi status dan user pengubah.
 - **Alur Status Dokumen Keluar Satu Arah**: Memastikan dokumen keluar mematuhi alur transisi baku (*Menunggu Kurir → Sudah Diserahkan ke JNE → Paket Kembali*).
 - **Penomoran Resi Internal Atomik**: Pembuatan nomor resi harian otomatis (`OUT-YYYYMMDD-001`) terlindung dari *race condition* melalui `transaction.atomic()` dan mekanisme percobaan ulang (*retry loop*).
@@ -34,7 +34,7 @@ Portal karyawan dirancang aman, responsif, dan mudah diakses tanpa memerlukan pe
   - **Riwayat Selesai (`/riwayat/`):** Menampilkan arsip dokumen yang telah selesai (*Dokumen Masuk: 'Sudah Diambil'*; *Dokumen Keluar: 'Paket Kembali'*). Dibatasi dengan masa retensi default 365 hari (`RIWAYAT_PORTAL_HARI = 365`).
 - **Timeline Status Interaktif:**
   - Setiap kartu dokumen menyajikan linimasa visual transisi status dari status awal hingga status terkini.
-  - Memuat stempel waktu perubahan dan nama staf yang memproses dokumen.
+  - Menampilkan perubahan status beserta stempel waktu kejadian (identitas staf/petugas pencatat disimpan di database dan ditampilkan khusus pada Dasbor Admin untuk menjaga privasi operasional).
 - **Tautan Pelacakan Ekspedisi Cerdas:**
   - Tautan URL Resi JNE hanya ditampilkan ketika paket berstatus *Sudah Diserahkan ke JNE*.
   - Jika paket berstatus *Paket Kembali*, tautan pelacakan ekspedisi otomatis disembunyikan.
@@ -94,7 +94,7 @@ Portal karyawan dirancang aman, responsif, dan mudah diakses tanpa memerlukan pe
   - Alur status yang diizinkan: `Menunggu Kurir` → `Sudah Diserahkan ke JNE` → `Paket Kembali`.
   - Sistem menolak perubahan status yang melompati tahapan (misalnya membuat dokumen baru langsung berstatus *Paket Kembali*).
 - **Integrasi Ekspedisi (JNE):**
-  - Input tautan URL Resi JNE wajib diisi ketika status diubah menjadi *Sudah Diserahkan ke JNE* atau *Paket Kembali*.
+  - Input tautan URL Resi JNE wajib diisi ketika status diubah menjadi *Sudah Diserahkan ke JNE* atau *Paket Kembali* (sesuai validasi kode saat ini; kebutuhan URL resi khusus pada status *Paket Kembali* sebaiknya dikonfirmasi lebih lanjut berdasarkan kesepakatan SOP operasional).
   - Resi JNE dapat diklik langsung oleh karyawan dari portal saat status *Sudah Diserahkan ke JNE*.
 - **Penanganan Paket Retur / Kembali:**
   - Dokumen yang gagal terkirim dan kembali ke kantor ditandai statusnya menjadi `Paket Kembali`.
@@ -162,6 +162,7 @@ Sistem dilengkapi test suite lengkap di `dokumen/tests.py` dengan total **22 ske
   - Tidak menggunakan notifikasi pihak ketiga (seperti WhatsApp API atau email blast) pada tahap MVP.
   - Integrasi ekspedisi kurir mengandalkan tautan URL pelacakan langsung (tanpa scraping/API kurir pihak ketiga).
   - Verifikasi pengambilan paket cukup mengandalkan validasi tanggal lahir pemilik barang tanpa memerlukan entitas perwakilan terpisah.
+  - Kebutuhan wajibnya URL Resi JNE saat status *Paket Kembali* diimplementasikan pada kode untuk menjamin jejak pelacakan awal tersimpan, namun perlu dikonfirmasi kembali sesuai kesepakatan SOP operasional divisi terkait.
 
 ---
 
