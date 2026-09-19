@@ -193,9 +193,6 @@ class DokumenKeluar(models.Model):
             })
 
         nama_pengirim = self.nama_pengirim.strip()
-        karyawan_cocok = Karyawan.objects.filter(
-            nama_lengkap__iexact=nama_pengirim
-        ).first()
 
         data_lama = None
         if self.pk:
@@ -205,10 +202,18 @@ class DokumenKeluar(models.Model):
         else:
             nama_tidak_diubah = False
 
-        if not karyawan_cocok or (not karyawan_cocok.aktif and not nama_tidak_diubah):
-            raise ValidationError({
-                'nama_pengirim': 'Nama pengirim harus sesuai dengan data karyawan yang masih aktif.'
-            })
+        # Transaksi baru atau perubahan nama harus cocok dengan karyawan aktif.
+        # Record lama yang mempertahankan nama pengirim tetap valid meskipun karyawan
+        # dengan nama tersebut sekarang sudah nonaktif.
+        if not self.pk or not nama_tidak_diubah:
+            karyawan_aktif = Karyawan.objects.filter(
+                nama_lengkap__iexact=nama_pengirim,
+                aktif=True,
+            ).first()
+            if not karyawan_aktif:
+                raise ValidationError({
+                    'nama_pengirim': 'Nama pengirim harus sesuai dengan data karyawan yang masih aktif.'
+                })
 
         if data_lama and data_lama.status != self.status:
             allowed_transitions = {
